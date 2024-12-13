@@ -18,6 +18,10 @@
 
 module CoulombIntegral
 
-greet() = print("Hello World!")
+export add_two_numbers
+
+function add_two_numbers(a,b)
+	return a+b; 
+end
 
 end # module CoulombIntegral
