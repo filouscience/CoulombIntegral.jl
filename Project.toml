@@ -1,0 +1,7 @@
+name = "CoulombIntegral"
+uuid = "b14d8a75-dabb-4667-8fda-26fbd28805c4"
+authors = ["filouscience <381931+filouscience@users.noreply.github.com>"]
+version = "0.1.0"
+
+[compat]
+julia = "1.10"
