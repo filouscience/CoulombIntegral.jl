@@ -16,31 +16,19 @@
  =  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  =#
 
-module CoulombIntegral
+module MonteCarloModule
 
+import ..Method
+export MonteCarlo
 
+struct MonteCarlo <: Method
+    n::Integer
 
-export add_two_numbers
-
-function add_two_numbers(a,b)
-	return a+b; 
+    function MonteCarlo(n::Integer)
+        n > 0 || error("Number of MC evaluations must be a positive integer.")
+        return new(n);
+    end
 end
 
 
-
-
-abstract type Method end
-
-#using InteractiveUtils
-#function list_integration_methods()
-#    for st in subtypes(Method)
-#        println(st);
-#    end
-#end
-
-include("MonteCarloModule.jl");
-using .MonteCarloModule
-include("ExpandModule.jl");
-using .ExpandModule
-
-end # module CoulombIntegral
+end # module MonteCarloModule

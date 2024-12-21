@@ -16,31 +16,19 @@
  =  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  =#
 
-module CoulombIntegral
+module ExpandModule
 
+import ..Method
+export Expand
 
+struct Expand <: Method
+    l::Integer
 
-export add_two_numbers
-
-function add_two_numbers(a,b)
-	return a+b; 
+    function Expand(l::Integer)
+        l >= 0 || error("Order of multipole expansion must be a non-negative integer.")
+        return new(l);
+    end
 end
 
 
-
-
-abstract type Method end
-
-#using InteractiveUtils
-#function list_integration_methods()
-#    for st in subtypes(Method)
-#        println(st);
-#    end
-#end
-
-include("MonteCarloModule.jl");
-using .MonteCarloModule
-include("ExpandModule.jl");
-using .ExpandModule
-
-end # module CoulombIntegral
+end # module ExpandModule
