@@ -18,12 +18,7 @@
 
 module CoulombIntegral
 
-export add_two_numbers, coulomb_integral, MonteCarlo, Expand
-
-function add_two_numbers(a,b)
-	return a+b; 
-end
-
+export coulomb_integral, MonteCarlo, Expand
 
 
 
