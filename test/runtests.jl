@@ -22,8 +22,15 @@ using Aqua
     end
     @testset "MonteCarlo integral" begin
         # odd integrand: zero
-        @test  isapprox(0, coulomb_integral(MonteCarlo(100), (x)->1,(0,0), (x)->1,(1,0), (x)->1,(0,0), (x)->1,(1,1); symmetrize=true)[1], atol=1e-9)
+        int0 = coulomb_integral(MonteCarlo(100), (x)->1,(0,0), (x)->1,(1,0), (x)->1,(0,0), (x)->1,(1,-1); symmetrize=true);
+        @test  isapprox(0, int0[1], atol=1e-9)
         # even integrand (all x,y,z directions): non-zero
-        @test !isapprox(0, coulomb_integral(MonteCarlo(100), (x)->1,(0,0), (x)->1,(1,0), (x)->1,(0,0), (x)->1,(1,0); symmetrize=true)[1], atol=1e-9)
+        Random.seed!(1);
+        int1 = coulomb_integral(MonteCarlo(100), (x)->1,(0,0), (x)->1,(1,0), (x)->1,(0,0), (x)->1,(1,0); symmetrize=true);
+        @test !isapprox(0, int1[1], atol=1e-9)
+        # even integrand: same result of 'symmetrize=true' and 'symmetrize=false'
+        Random.seed!(1);
+        int2 = coulomb_integral(MonteCarlo(100), (x)->1,(0,0), (x)->1,(1,0), (x)->1,(0,0), (x)->1,(1,0); symmetrize=false);
+        @test isapprox(int1[1], int2[1], atol=1e-9)
     end
 end
