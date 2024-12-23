@@ -3,5 +3,11 @@ uuid = "b14d8a75-dabb-4667-8fda-26fbd28805c4"
 authors = ["filouscience <381931+filouscience@users.noreply.github.com>"]
 version = "0.1.0"
 
+[deps]
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+SphericalHarmonics = "c489a379-e885-57ff-9236-bd896d33c250"
+
 [compat]
+Random = "<0.0.1, 1"
+SphericalHarmonics = "0.1"
 julia = "1.10"

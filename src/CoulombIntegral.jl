@@ -18,9 +18,7 @@
 
 module CoulombIntegral
 
-
-
-export add_two_numbers
+export add_two_numbers, coulomb_integral, MonteCarlo, Expand
 
 function add_two_numbers(a,b)
 	return a+b; 
@@ -31,12 +29,10 @@ end
 
 abstract type Method end
 
-#using InteractiveUtils
-#function list_integration_methods()
-#    for st in subtypes(Method)
-#        println(st);
-#    end
-#end
+function coulomb_integral()
+    return 0;
+end
+
 
 include("MonteCarloModule.jl");
 using .MonteCarloModule
