@@ -68,6 +68,7 @@ function coulomb_integral(method::MonteCarlo,
     vol = (4/3*pi)^2;
     est = vol * M;                                               # estimated value of the integral
     std = method.n > 1 ? vol * sqrt( S / (method.n - 1) ) : NaN; # standard deviation
+    println("integral estimate: $est, standard deviation estimate: $std");
     return (est, std);
 end
 
@@ -109,6 +110,7 @@ function symmetrized_integral(method::MonteCarlo,
     vol = (4/3*π)^2;
     est = vol * M;                                               # estimated value of the integral
     std = method.n > 1 ? vol * sqrt( S / (method.n - 1) ) : NaN; # standard deviation
+    println("integral estimate: $est, standard deviation estimate: $std");
     return (est, std);
 end
 
