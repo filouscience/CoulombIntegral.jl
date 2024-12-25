@@ -9,16 +9,12 @@ using Aqua
     end
     # Write your tests here.
     @testset "MonteCarlo utils" begin
-        th1,ph1 = ( π*rand(), 2π*rand() );
-        x1 = CoulombIntegral.MonteCarloModule.x(1, th1, ph1);
-        y1 = CoulombIntegral.MonteCarloModule.y(1, th1, ph1);
-        z1 = CoulombIntegral.MonteCarloModule.z(1, th1, ph1);
-        x2 = CoulombIntegral.MonteCarloModule.x(1, CoulombIntegral.MonteCarloModule.x_inv( [th1,ph1] )... );
-        y2 = CoulombIntegral.MonteCarloModule.y(1, CoulombIntegral.MonteCarloModule.y_inv( [th1,ph1] )... );
-        z2 = CoulombIntegral.MonteCarloModule.z(1, CoulombIntegral.MonteCarloModule.z_inv( [th1,ph1] )... );
-        @test isapprox(x1, -x2, atol=1e-9)
-        @test isapprox(y1, -y2, atol=1e-9)
-        @test isapprox(z1, -z2, atol=1e-9)
+        a1 = [ π*rand(), 2π*rand() ];
+        a2 = CoulombIntegral.MonteCarloModule.z_inv(
+                CoulombIntegral.MonteCarloModule.y_inv(
+                    CoulombIntegral.MonteCarloModule.x_inv(a1) ) );
+        d = CoulombIntegral.MonteCarloModule.dist(1, a1..., 1, a2...);
+        @test isapprox(d, 2, atol=1e-6)
     end
     @testset "MonteCarlo integral" begin
         # odd integrand: zero
