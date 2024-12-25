@@ -20,13 +20,8 @@ module CoulombIntegral
 
 export coulomb_integral, MonteCarlo, Expand
 
-
-
 abstract type Method end
-
-function coulomb_integral()
-    return 0;
-end
+function coulomb_integral end
 
 
 include("MonteCarloModule.jl");
