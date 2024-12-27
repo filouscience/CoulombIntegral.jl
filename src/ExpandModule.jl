@@ -18,8 +18,14 @@
 
 module ExpandModule
 
-import ..Method
-export Expand
+using WignerSymbols
+# select appropriate 2D integration method for radial part:
+#using QuadGK # nested 1D
+#using HCubature
+#using Trapz # discrete
+
+import CoulombIntegral: Method, coulomb_integral
+export Expand, coulomb_integral
 
 struct Expand <: Method
     l::Integer
@@ -30,5 +36,13 @@ struct Expand <: Method
     end
 end
 
+function coulomb_integral(method::Expand,
+                        r1f_fun, lm1f::Tuple{<:Integer,<:Integer},
+                        r2f_fun, lm2f::Tuple{<:Integer,<:Integer},
+                        r1i_fun, lm1i::Tuple{<:Integer,<:Integer},
+                        r2i_fun, lm2i::Tuple{<:Integer,<:Integer};
+                        recalc::Bool=false)
+    return 0;
+end
 
 end # module ExpandModule
