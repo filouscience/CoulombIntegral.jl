@@ -18,14 +18,11 @@
 
 module ExpandModule
 
-using WignerSymbols
-# select appropriate 2D integration method for radial part:
-#using QuadGK # nested 1D
-#using HCubature
-#using Trapz # discrete
-
 import CoulombIntegral: Method, coulomb_integral
 export Expand, coulomb_integral
+
+using WignerSymbols
+using HCubature
 
 struct Expand <: Method
     l::Integer
@@ -42,7 +39,50 @@ function coulomb_integral(method::Expand,
                         r1i_fun, lm1i::Tuple{<:Integer,<:Integer},
                         r2i_fun, lm2i::Tuple{<:Integer,<:Integer};
                         recalc::Bool=false)
-    return 0;
+    l1f, m1f, l2f, m2f, l1i, m1i, l2i, m2i = lm1f..., lm2f..., lm1i..., lm2i...;
+    
+    # M==m1i-m1f && -M==m2i-m2f
+    M = m1i-m1f;
+    M == m2f-m2i || return 0;
+    minL = max( abs(l1f-l1i), abs(l2f-l2i), abs(M) );
+    maxL = min( l1f+l1i, l2f+l2i );
+    
+    int, err = (0, 0);
+    for L in minL:maxL
+        angular_part = (-1)^M * sqrt( (2l1f+1)/(2l1i+1)*(2l2f+1)/(2l2i+1) ) *
+                        sph3product(l1f,m1f,L,+M,l1i,m1i) *
+                        sph3product(l2f,m2f,L,-M,l2i,m2i);
+        angular_part == 0 && continue;
+        
+        radial_part = radial_int(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun);
+        
+        int += angular_part * radial_part[1];
+        err += angular_part * radial_part[2];
+    end # for
+    
+    println("integral estimate: $int, error estimate: $err");
+    return (int, err);
+end
+
+function sph3product(l1, m1, l2, m2, L, M; norm=false)
+    norm && return sqrt( (2l1+1)*(2l2+1)/(4π*(2L+1)) ) * clebschgordan(l1,0,l2,0,L,0) * clebschgordan(l1,m1,l2,m2,L,M);
+    return clebschgordan(l1,0,l2,0,L,0) * clebschgordan(l1,m1,l2,m2,L,M);
+end
+
+function rad2product(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun)
+    return (r)->begin
+        r1, r2 = r;
+        # fix the limit of the Laplace expansion:
+        r1 == 0 && return 0;
+        r2 == 0 && return 0;
+        # jacobian r1^2 * r2^2 included:
+        return (r1<r2 ? r1^(L+2)/r2^(L-1) : r2^(L+2)/r1^(L-1)) * r1f_fun(r1) * r2f_fun(r2) * r1i_fun(r1) * r2i_fun(r2);
+    end
+end
+
+function radial_int(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun; kwargs...)
+    int, err = hcubature( rad2product(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun), [0,0], [1,1]; kwargs... );
+    return (int, err);
 end
 
 end # module ExpandModule
