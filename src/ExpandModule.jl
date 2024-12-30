@@ -25,11 +25,10 @@ using WignerSymbols
 using HCubature
 
 struct Expand <: Method
-    l::Integer
+    hcub_kwargs # kwargs for hcubature
 
-    function Expand(l::Integer)
-        l >= 0 || error("Order of multipole expansion must be a non-negative integer.")
-        return new(l);
+    function Expand(; kwargs...)
+        return new(kwargs);
     end
 end
 
@@ -54,7 +53,7 @@ function coulomb_integral(method::Expand,
                         sph3product(l2f,m2f,L,-M,l2i,m2i);
         angular_part == 0 && continue;
         
-        radial_part = radial_int(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun);
+        radial_part = radial_int(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun; method.hcub_kwargs...);
         
         int += angular_part * radial_part[1];
         err += angular_part * radial_part[2];
@@ -81,7 +80,7 @@ function rad2product(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun)
 end
 
 function radial_int(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun; kwargs...)
-    int, err = hcubature( rad2product(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun), [0,0], [1,1]; kwargs... );
+    int, err = hcubature( rad2product(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun), [0.0,0.0], [1.0,1.0]; kwargs... );
     return (int, err);
 end
 
