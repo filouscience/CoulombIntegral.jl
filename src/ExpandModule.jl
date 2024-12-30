@@ -33,10 +33,10 @@ struct Expand <: Method
 end
 
 function coulomb_integral(method::Expand,
-                        r1f_fun, lm1f::Tuple{<:Integer,<:Integer},
-                        r2f_fun, lm2f::Tuple{<:Integer,<:Integer},
-                        r1i_fun, lm1i::Tuple{<:Integer,<:Integer},
-                        r2i_fun, lm2i::Tuple{<:Integer,<:Integer};
+                        r1f_fun::Function, lm1f::Tuple{<:Integer,<:Integer},
+                        r2f_fun::Function, lm2f::Tuple{<:Integer,<:Integer},
+                        r1i_fun::Function, lm1i::Tuple{<:Integer,<:Integer},
+                        r2i_fun::Function, lm2i::Tuple{<:Integer,<:Integer};
                         recalc::Bool=false)
     l1f, m1f, l2f, m2f, l1i, m1i, l2i, m2i = lm1f..., lm2f..., lm1i..., lm2i...;
     

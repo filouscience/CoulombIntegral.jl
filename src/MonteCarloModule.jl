@@ -18,11 +18,11 @@
 
 module MonteCarloModule
 
-using Random
-using SphericalHarmonics
-
 import CoulombIntegral: Method, coulomb_integral
 export MonteCarlo, coulomb_integral
+
+using Random
+using SphericalHarmonics
 
 struct MonteCarlo <: Method
     n::Integer
@@ -34,10 +34,10 @@ struct MonteCarlo <: Method
 end
 
 function coulomb_integral(method::MonteCarlo,
-                        r1f_fun, lm1f::Tuple{<:Integer,<:Integer},
-                        r2f_fun, lm2f::Tuple{<:Integer,<:Integer},
-                        r1i_fun, lm1i::Tuple{<:Integer,<:Integer},
-                        r2i_fun, lm2i::Tuple{<:Integer,<:Integer};
+                        r1f_fun::Function, lm1f::Tuple{<:Integer,<:Integer},
+                        r2f_fun::Function, lm2f::Tuple{<:Integer,<:Integer},
+                        r1i_fun::Function, lm1i::Tuple{<:Integer,<:Integer},
+                        r2i_fun::Function, lm2i::Tuple{<:Integer,<:Integer};
                         recalc::Bool=false, symmetrize::Bool=false)
     symmetrize && return symmetrized_integral(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i);
     
