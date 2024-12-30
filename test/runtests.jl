@@ -29,4 +29,25 @@ using Aqua
         int2 = coulomb_integral(MonteCarlo(100), (x)->1,(0,0), (x)->1,(1,0), (x)->1,(0,0), (x)->1,(1,0); symmetrize=false);
         @test isapprox(int1[1], int2[1], atol=1e-9)
     end
+    @testset "Expand radial part" begin
+        # compare radial part integral with simple-case analytic solution
+        analytic(L) = L==2 ? 2/25 : 1/5*1/(L+3) - 1/5*1/(2-L) + 1/(L+3)*1/(2-L);
+        for l in 1:5
+            int, err = CoulombIntegral.ExpandModule.radial_int(l, (x)->1, (x)->1, (x)->1, (x)->1);
+            @test isapprox(int, analytic(l), atol=err)
+        end
+    end
+    @testset "Expand angular part" begin
+        # symmetry of sph3product
+        l1, m1 = (1, 1);
+        l2, m2 = (2,-1);
+        L,  M  = (3, 0);
+        a1 = CoulombIntegral.ExpandModule.sph3product(l1,+m1,l2,+m2, L, +M; norm=true);
+        a2 = CoulombIntegral.ExpandModule.sph3product(l2,+m2,l1,+m1, L, +M; norm=true);
+        a3 = CoulombIntegral.ExpandModule.sph3product(l1,+m1, L, -M,l2,-m2; norm=true)*(-1)^(M-m1);
+        a4 = CoulombIntegral.ExpandModule.sph3product( L, -M,l2,+m2,l1,-m1; norm=true)*(-1)^(M-m1);
+        @test isapprox(a1, a2, atol=1e-9)
+        @test isapprox(a1, a3, atol=1e-9)
+        @test isapprox(a1, a4, atol=1e-9)
+    end
 end
