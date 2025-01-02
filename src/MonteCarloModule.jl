@@ -38,8 +38,8 @@ function coulomb_integral(method::MonteCarlo,
                         r2f_fun::Function, lm2f::Tuple{<:Integer,<:Integer},
                         r1i_fun::Function, lm1i::Tuple{<:Integer,<:Integer},
                         r2i_fun::Function, lm2i::Tuple{<:Integer,<:Integer};
-                        recalc::Bool=false, symmetrize::Bool=false)
-    symmetrize && return symmetrized_integral(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i);
+                        R::Real=1.0, recalc::Bool=false, symmetrize::Bool=false)
+    symmetrize && return symmetrized_integral(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R);
     
     M = 0;
     S = 0;
@@ -47,7 +47,7 @@ function coulomb_integral(method::MonteCarlo,
     l2max = max( lm2i[1], lm2f[1] );
     for itr in 1:method.n
         u = rand(Float64,6);
-        r1,  r2  = rad.(u[1:2]);
+        r1,  r2  = R .* rad.(u[1:2]);
         th1, th2 = theta.(u[3:4]);
         ph1, ph2 = phi.(u[5:6]);
         Y1 = computeYlm(th1, ph1; lmax=l1max);
@@ -66,7 +66,7 @@ function coulomb_integral(method::MonteCarlo,
         
     end # for
     
-    vol = (4/3*pi)^2;
+    vol = (4/3*pi)^2 * R^6;
     # estimated value of the integral
     est = vol * M;
     # standard deviation:
@@ -77,17 +77,18 @@ function coulomb_integral(method::MonteCarlo,
 end
 
 function symmetrized_integral(method::MonteCarlo,
-                        r1f_fun, lm1f::Tuple{<:Integer,<:Integer},
-                        r2f_fun, lm2f::Tuple{<:Integer,<:Integer},
-                        r1i_fun, lm1i::Tuple{<:Integer,<:Integer},
-                        r2i_fun, lm2i::Tuple{<:Integer,<:Integer})
+                        r1f_fun::Function, lm1f::Tuple{<:Integer,<:Integer},
+                        r2f_fun::Function, lm2f::Tuple{<:Integer,<:Integer},
+                        r1i_fun::Function, lm1i::Tuple{<:Integer,<:Integer},
+                        r2i_fun::Function, lm2i::Tuple{<:Integer,<:Integer},
+                        R)
     M = 0;
     S = 0;
     l1max = max( lm1i[1], lm1f[1] );
     l2max = max( lm2i[1], lm2f[1] );
     for itr in 1:method.n
         u = rand(Float64,6);
-        r1,  r2  = rad.(u[1:2]);
+        r1,  r2  = R .* rad.(u[1:2]);
         th1, th2 = theta.(u[3:4]);
         ph1, ph2 = phi.(u[5:6]);
         a1 = symmetrize([th1,ph1]);
@@ -112,7 +113,7 @@ function symmetrized_integral(method::MonteCarlo,
         
     end # for
     
-    vol = (4/3*π)^2;
+    vol = (4/3*π)^2 * R^6;
     # estimated value of the integral:
     est = vol * M;
     # standard deviation:

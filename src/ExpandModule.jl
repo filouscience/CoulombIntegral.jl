@@ -37,7 +37,7 @@ function coulomb_integral(method::Expand,
                         r2f_fun::Function, lm2f::Tuple{<:Integer,<:Integer},
                         r1i_fun::Function, lm1i::Tuple{<:Integer,<:Integer},
                         r2i_fun::Function, lm2i::Tuple{<:Integer,<:Integer};
-                        recalc::Bool=false)
+                        R::Real=1.0, recalc::Bool=false)
     l1f, m1f, l2f, m2f, l1i, m1i, l2i, m2i = lm1f..., lm2f..., lm1i..., lm2i...;
     
     # M==m1i-m1f && -M==m2i-m2f
@@ -53,7 +53,7 @@ function coulomb_integral(method::Expand,
                         sph3product(l2f,m2f,L,-M,l2i,m2i);
         angular_part == 0 && continue;
         
-        radial_part = radial_int(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun; method.hcub_kwargs...);
+        radial_part = radial_int(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun, R; method.hcub_kwargs...);
         
         int += angular_part * radial_part[1];
         err += angular_part * radial_part[2];
@@ -79,8 +79,8 @@ function rad2product(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun)
     end
 end
 
-function radial_int(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun; kwargs...)
-    int, err = hcubature( rad2product(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun), [0.0,0.0], [1.0,1.0]; kwargs... );
+function radial_int(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun, R; kwargs...)
+    int, err = hcubature( rad2product(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun), [0.0,0.0], [R,R]; kwargs... );
     return (int, err);
 end
 

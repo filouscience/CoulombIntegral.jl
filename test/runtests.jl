@@ -33,7 +33,7 @@ using Aqua
         # compare radial part integral with simple-case analytic solution
         analytic(L) = L==2 ? 2/25 : 1/5*1/(L+3) - 1/5*1/(2-L) + 1/(L+3)*1/(2-L);
         for l in 1:5
-            int, err = CoulombIntegral.ExpandModule.radial_int(l, (x)->1, (x)->1, (x)->1, (x)->1);
+            int, err = CoulombIntegral.ExpandModule.radial_int(l, (x)->1, (x)->1, (x)->1, (x)->1, 1.0);
             @test isapprox(int, analytic(l), atol=err)
         end
     end
