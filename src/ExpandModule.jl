@@ -42,7 +42,7 @@ function coulomb_integral(method::Expand,
     
     # M==m1i-m1f && -M==m2i-m2f
     M = m1i-m1f;
-    M == m2f-m2i || return 0;
+    M == m2f-m2i || ( println("integral estimate: 0.0, error estimate: 0.0"); return (0, 0); );
     minL = max( abs(l1f-l1i), abs(l2f-l2i), abs(M) );
     maxL = min( l1f+l1i, l2f+l2i );
     
