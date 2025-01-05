@@ -43,6 +43,7 @@ function coulomb_integral(method::MonteCarlo,
     
     M = 0;
     S = 0;
+    reg2 = (R * 1e-4)^2; # distance regularization
     l1max = max( lm1i[1], lm1f[1] );
     l2max = max( lm2i[1], lm2f[1] );
     for itr in 1:method.n
@@ -56,7 +57,7 @@ function coulomb_integral(method::MonteCarlo,
         # integrand value
         val = conj( r1f_fun(r1) * r2f_fun(r2) * Y1[lm1f] * Y2[lm2f] ) *
                   ( r1i_fun(r1) * r2i_fun(r2) * Y1[lm1i] * Y2[lm2i] ) /
-                  dist(r1, th1, ph1, r2, th2, ph2);
+                  sqrt( dist2(r1, th1, ph1, r2, th2, ph2) + reg2 );
 
         # Welford's online algorithm
         delta1 = val - M;
@@ -84,6 +85,7 @@ function symmetrized_integral(method::MonteCarlo,
                         R)
     M = 0;
     S = 0;
+    reg2 = (R * 1e-4)^2;
     l1max = max( lm1i[1], lm1f[1] );
     l2max = max( lm2i[1], lm2f[1] );
     for itr in 1:method.n
@@ -97,7 +99,7 @@ function symmetrized_integral(method::MonteCarlo,
         Y2 = computeYlm.(a2[:,1], a2[:,2]; lmax=l2max);
 
         # integrand value
-        fac = r1f_fun(r1) * r2f_fun(r2) * r1i_fun(r1) * r2i_fun(r2) / dist(r1, th1, ph1, r2, th2, ph2) / 8;
+        fac = r1f_fun(r1) * r2f_fun(r2) * r1i_fun(r1) * r2i_fun(r2) / sqrt( dist2(r1, th1, ph1, r2, th2, ph2) + reg2 ) / 8;
         val = 0;
         for jtr in 1:8
             val += conj( Y1[jtr][lm1f] * Y2[jtr][lm2f] ) * Y1[jtr][lm1i] * Y2[jtr][lm2i];
@@ -134,10 +136,9 @@ y(r,th,ph) = r*sin(th)*sin(ph);
 z(r,th,ph) = r*cos(th);
 
 # euclidean distance
-dist(r1,th1,ph1,r2,th2,ph2) = sqrt( ( x(r1,th1,ph1) - x(r2,th2,ph2) )^2 +
-                                    ( y(r1,th1,ph1) - y(r2,th2,ph2) )^2 +
-                                    ( z(r1,th1,ph1) - z(r2,th2,ph2) )^2 +
-                                    0.0001^2 ); # regularization
+dist2(r1,th1,ph1,r2,th2,ph2) = ( x(r1,th1,ph1) - x(r2,th2,ph2) )^2 +
+                               ( y(r1,th1,ph1) - y(r2,th2,ph2) )^2 +
+                               ( z(r1,th1,ph1) - z(r2,th2,ph2) )^2;
 
 function symmetrize(v0)
     v1 = [v0, x_inv(v0)];

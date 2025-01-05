@@ -13,8 +13,8 @@ using Aqua
         a2 = CoulombIntegral.MonteCarloModule.z_inv(
                 CoulombIntegral.MonteCarloModule.y_inv(
                     CoulombIntegral.MonteCarloModule.x_inv(a1) ) );
-        d = CoulombIntegral.MonteCarloModule.dist(1, a1..., 1, a2...);
-        @test isapprox(d, 2, atol=1e-6)
+        d = sqrt( CoulombIntegral.MonteCarloModule.dist2(1, a1..., 1, a2...) );
+        @test isapprox(d, 2, atol=1e-9)
     end
     @testset "MonteCarlo integral" begin
         # odd integrand: zero
