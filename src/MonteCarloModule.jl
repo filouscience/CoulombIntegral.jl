@@ -68,7 +68,7 @@ function coulomb_integral(method::MonteCarlo,
         delta1 = val - M;
         M += delta1 / itr;
         delta2 = val - M;
-        S += abs(delta1) * abs(delta2);
+        S += abs( delta1 * delta2 );
         
     end # for
     
@@ -78,7 +78,7 @@ function coulomb_integral(method::MonteCarlo,
     # standard deviation:
     std = method.n > 1 ? vol * sqrt( S / (method.n - 1) ) / sqrt(method.n) : NaN;
                                   # ^^sample variance^^
-    println("integral estimate: $est, standard deviation estimate: $std");
+    println("integral estimate: $est, error estimate: $std");
     return (est, std);
 end
 
@@ -121,7 +121,7 @@ function symmetrized_integral(method::MonteCarlo,
         delta1 = val - M;
         M += delta1 / itr;
         delta2 = val - M;
-        S += delta1 * delta2;
+        S += abs( delta1 * delta2 );
         
     end # for
     
@@ -131,7 +131,7 @@ function symmetrized_integral(method::MonteCarlo,
     # standard deviation:
     std = method.n > 1 ? vol * sqrt( S / (method.n - 1) ) / sqrt(method.n) : NaN;
     
-    println("integral estimate: $est, standard deviation estimate: $std");
+    println("integral estimate: $est, error estimate: $std");
     return (est, std);
 end
 
