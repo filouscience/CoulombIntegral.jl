@@ -25,7 +25,7 @@ using WignerSymbols
 using HCubature
 
 struct Expand <: Method
-    hcub_kwargs # kwargs for hcubature
+    HCub_kwargs # kwargs for hcubature
 
     function Expand(; kwargs...)
         return new(kwargs);
@@ -37,7 +37,9 @@ function coulomb_integral(method::Expand,
                         r2f_fun::Function, lm2f::Tuple{<:Integer,<:Integer},
                         r1i_fun::Function, lm1i::Tuple{<:Integer,<:Integer},
                         r2i_fun::Function, lm2i::Tuple{<:Integer,<:Integer};
-                        R::Real=1.0, recalc::Bool=false)
+                        R::Real=1.0, real_sph::Bool=false, recalc::Bool=false)
+    real_sph && return realsph_integral(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, recalc);
+    
     l1f, m1f, l2f, m2f, l1i, m1i, l2i, m2i = lm1f..., lm2f..., lm1i..., lm2i...;
     
     # M==m1i-m1f && -M==m2i-m2f
@@ -48,12 +50,10 @@ function coulomb_integral(method::Expand,
     
     int, err = (0, 0);
     for L in minL:maxL
-        angular_part = (-1)^M * sqrt( (2l1f+1)/(2l1i+1)*(2l2f+1)/(2l2i+1) ) *
-                        sph3product(l1f,m1f,L,+M,l1i,m1i) *
-                        sph3product(l2f,m2f,L,-M,l2i,m2i);
-        angular_part == 0 && continue;
         
-        radial_part = radial_int(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun, R; method.hcub_kwargs...);
+        angular_part = angular_int(lm1f, lm2f, lm1i, lm2i, (L,M); norm=true);
+        angular_part == 0 && continue;
+        radial_part = radial_int(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun, R; method.HCub_kwargs...);
         
         int += angular_part * radial_part[1];
         err += angular_part * radial_part[2];
@@ -63,9 +63,67 @@ function coulomb_integral(method::Expand,
     return (int, err);
 end
 
+function realsph_integral(method::Expand,
+                        r1f_fun::Function, lm1f::Tuple{<:Integer,<:Integer},
+                        r2f_fun::Function, lm2f::Tuple{<:Integer,<:Integer},
+                        r1i_fun::Function, lm1i::Tuple{<:Integer,<:Integer},
+                        r2i_fun::Function, lm2i::Tuple{<:Integer,<:Integer},
+                        R, recalc)
+    l1f, m1f, l2f, m2f, l1i, m1i, l2i, m2i = lm1f..., lm2f..., lm1i..., lm2i...;
+
+    minL = max( abs(l1f-l1i), abs(l2f-l2i) );
+    maxL = min( l1f+l1i, l2f+l2i );
+    int, err = (0, 0);
+    for L in minL:maxL
+
+        angular_part = 0;
+        for m1f_ in (-m1f,m1f)
+            fac1f = (m1f<0 ? 1im : 1)*(m1f_>0 ? (-1)^(m1f_+(m1f<0 ? 1 : 0)) : 1)/(m1f==0 ? 1 : sqrt(2));
+            for m2f_ in (-m2f,m2f)
+                fac2f = (m2f<0 ? 1im : 1)*(m2f_>0 ? (-1)^(m2f_+(m2f<0 ? 1 : 0)) : 1)/(m2f==0 ? 1 : sqrt(2));
+                for m1i_ in (-m1i,m1i)
+                    fac1i = (m1i<0 ? 1im : 1)*(m1i_>0 ? (-1)^(m1i_+(m1i<0 ? 1 : 0)) : 1)/(m1i==0 ? 1 : sqrt(2));
+                    M = m1i_-m1f_;
+                    for m2i_ in (-m2i,m2i)
+                        M == m2f_-m2i_ || continue;
+                        L >= abs(M) || continue;
+                        fac2i = (m2i<0 ? 1im : 1)*(m2i_>0 ? (-1)^(m2i_+(m2i<0 ? 1 : 0)) : 1)/(m2i==0 ? 1 : sqrt(2));
+                        angular_part += fac1f * fac2f * fac1i * fac2i *
+                                        angular_int( (l1f,m1f_), (l2f,m2f_), (l1i,m1i_), (l2i,m2i_), (L,M); norm=false);
+                        m2i == 0 && break;
+                    end
+                    m1i == 0 && break;
+                end
+                m2f == 0 && break;
+            end
+            m1f == 0 && break;
+        end
+
+        angular_part == 0 && continue;
+        angular_part *= sqrt( (2l1f+1)/(2l1i+1)*(2l2f+1)/(2l2i+1) );
+        
+        radial_part = radial_int(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun, R; method.HCub_kwargs...);
+        
+        int += angular_part * radial_part[1];
+        err += angular_part * abs(radial_part[2]);
+    end
+
+    println("integral estimate: $int, error estimate: $err");
+    return (int, err);
+end
+
 function sph3product(l1, m1, l2, m2, L, M; norm=false)
     norm && return sqrt( (2l1+1)*(2l2+1)/(4π*(2L+1)) ) * clebschgordan(l1,0,l2,0,L,0) * clebschgordan(l1,m1,l2,m2,L,M);
     return clebschgordan(l1,0,l2,0,L,0) * clebschgordan(l1,m1,l2,m2,L,M);
+end
+
+function angular_int(lm1f, lm2f, lm1i, lm2i, LM; norm=false)
+    l1f, m1f, l2f, m2f, l1i, m1i, l2i, m2i, L, M = lm1f..., lm2f..., lm1i..., lm2i..., LM...;
+    int = (-1)^M *
+            sph3product(l1f,m1f,L,+M,l1i,m1i) *
+            sph3product(l2f,m2f,L,-M,l2i,m2i);
+    norm && return int * sqrt( (2l1f+1)/(2l1i+1)*(2l2f+1)/(2l2i+1) );
+    return int;
 end
 
 function rad2product(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun)
