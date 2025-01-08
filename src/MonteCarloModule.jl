@@ -22,7 +22,7 @@ import CoulombIntegral: Method, coulomb_integral
 export MonteCarlo, coulomb_integral
 
 using Random
-using SphericalHarmonics
+using SphericalHarmonics # implemented without Condon-Shortley phase: (-1)^m
 
 struct MonteCarlo <: Method
     n::Integer
@@ -38,8 +38,8 @@ function coulomb_integral(method::MonteCarlo,
                         r2f_fun::Function, lm2f::Tuple{<:Integer,<:Integer},
                         r1i_fun::Function, lm1i::Tuple{<:Integer,<:Integer},
                         r2i_fun::Function, lm2i::Tuple{<:Integer,<:Integer};
-                        R::Real=1.0, recalc::Bool=false, symmetrize::Bool=false)
-    symmetrize && return symmetrized_integral(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R);
+                        R::Real=1.0, real_sph::Bool=false, recalc::Bool=false, symmetrize::Bool=false)
+    symmetrize && return symmetrized_integral(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, real_sph);
     
     M = 0;
     S = 0;
@@ -51,8 +51,13 @@ function coulomb_integral(method::MonteCarlo,
         r1,  r2  = R .* rad.(u[1:2]);
         th1, th2 = theta.(u[3:4]);
         ph1, ph2 = phi.(u[5:6]);
-        Y1 = computeYlm(th1, ph1; lmax=l1max);
-        Y2 = computeYlm(th2, ph2; lmax=l2max);
+        if (real_sph)
+            Y1 = computeYlm(th1, ph1; lmax=l1max, SHType = SphericalHarmonics.RealHarmonics());
+            Y2 = computeYlm(th2, ph2; lmax=l2max, SHType = SphericalHarmonics.RealHarmonics());
+        else
+            Y1 = computeYlm(th1, ph1; lmax=l1max, SHType = SphericalHarmonics.ComplexHarmonics());
+            Y2 = computeYlm(th2, ph2; lmax=l2max, SHType = SphericalHarmonics.ComplexHarmonics());
+        end
 
         # integrand value
         val = conj( r1f_fun(r1) * r2f_fun(r2) * Y1[lm1f] * Y2[lm2f] ) *
@@ -63,7 +68,7 @@ function coulomb_integral(method::MonteCarlo,
         delta1 = val - M;
         M += delta1 / itr;
         delta2 = val - M;
-        S += delta1 * delta2;
+        S += abs(delta1) * abs(delta2);
         
     end # for
     
@@ -82,7 +87,7 @@ function symmetrized_integral(method::MonteCarlo,
                         r2f_fun::Function, lm2f::Tuple{<:Integer,<:Integer},
                         r1i_fun::Function, lm1i::Tuple{<:Integer,<:Integer},
                         r2i_fun::Function, lm2i::Tuple{<:Integer,<:Integer},
-                        R)
+                        R, real_sph)
     M = 0;
     S = 0;
     reg2 = (R * 1e-4)^2;
@@ -95,8 +100,13 @@ function symmetrized_integral(method::MonteCarlo,
         ph1, ph2 = phi.(u[5:6]);
         a1 = symmetrize([th1,ph1]);
         a2 = symmetrize([th2,ph2]);
-        Y1 = computeYlm.(a1[:,1], a1[:,2]; lmax=l1max);
-        Y2 = computeYlm.(a2[:,1], a2[:,2]; lmax=l2max);
+        if (real_sph)
+            Y1 = computeYlm.(a1[:,1], a1[:,2]; lmax=l1max, SHType = SphericalHarmonics.RealHarmonics());
+            Y2 = computeYlm.(a2[:,1], a2[:,2]; lmax=l2max, SHType = SphericalHarmonics.RealHarmonics());
+        else
+            Y1 = computeYlm.(a1[:,1], a1[:,2]; lmax=l1max, SHType = SphericalHarmonics.ComplexHarmonics());
+            Y2 = computeYlm.(a2[:,1], a2[:,2]; lmax=l2max, SHType = SphericalHarmonics.ComplexHarmonics());
+        end
 
         # integrand value
         fac = r1f_fun(r1) * r2f_fun(r2) * r1i_fun(r1) * r2i_fun(r2) / sqrt( dist2(r1, th1, ph1, r2, th2, ph2) + reg2 ) / 8;
