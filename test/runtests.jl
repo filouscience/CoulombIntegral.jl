@@ -46,8 +46,17 @@ using Aqua
         a2 = CoulombIntegral.ExpandModule.sph3product(l2,+m2,l1,+m1, L, +M; norm=true);
         a3 = CoulombIntegral.ExpandModule.sph3product(l1,+m1, L, -M,l2,-m2; norm=true)*(-1)^(M-m1);
         a4 = CoulombIntegral.ExpandModule.sph3product( L, -M,l2,+m2,l1,-m1; norm=true)*(-1)^(M-m1);
-        @test isapprox(a1, a2, atol=1e-9)
-        @test isapprox(a1, a3, atol=1e-9)
-        @test isapprox(a1, a4, atol=1e-9)
+        @test isapprox([a1,a1,a1], [a2,a3,a4], atol=1e-9)
+        
+        b = [CoulombIntegral.ExpandModule.real2complex(-2,-2),
+             CoulombIntegral.ExpandModule.real2complex(-2,+2),
+             CoulombIntegral.ExpandModule.real2complex(-1,-1),
+             CoulombIntegral.ExpandModule.real2complex(-1,+1),
+             CoulombIntegral.ExpandModule.real2complex( 0, 0),
+             CoulombIntegral.ExpandModule.real2complex(+1,-1),
+             CoulombIntegral.ExpandModule.real2complex(+1,+1),
+             CoulombIntegral.ExpandModule.real2complex(+2,-2),
+             CoulombIntegral.ExpandModule.real2complex(+2,+2)];
+        @test isapprox(b, 1/sqrt(2).*[+1im,-1im,+1im,+1im,sqrt(2), +1, -1, +1, +1], atol=1e-9);
     end
 end

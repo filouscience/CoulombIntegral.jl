@@ -78,16 +78,16 @@ function realsph_integral(method::Expand,
 
         angular_part = 0;
         for m1f_ in (-m1f,m1f)
-            fac1f = (m1f<0 ? 1im : 1)*(m1f_>0 ? (-1)^(m1f_+(m1f<0 ? 1 : 0)) : 1)/(m1f==0 ? 1 : sqrt(2));
+            fac1f = real2complex(m1f,m1f_);
             for m2f_ in (-m2f,m2f)
-                fac2f = (m2f<0 ? 1im : 1)*(m2f_>0 ? (-1)^(m2f_+(m2f<0 ? 1 : 0)) : 1)/(m2f==0 ? 1 : sqrt(2));
+                fac2f = real2complex(m2f,m2f_);
                 for m1i_ in (-m1i,m1i)
-                    fac1i = (m1i<0 ? 1im : 1)*(m1i_>0 ? (-1)^(m1i_+(m1i<0 ? 1 : 0)) : 1)/(m1i==0 ? 1 : sqrt(2));
+                    fac1i = real2complex(m1i,m1i_);
                     M = m1i_-m1f_;
                     for m2i_ in (-m2i,m2i)
                         M == m2f_-m2i_ || continue;
                         L >= abs(M) || continue;
-                        fac2i = (m2i<0 ? 1im : 1)*(m2i_>0 ? (-1)^(m2i_+(m2i<0 ? 1 : 0)) : 1)/(m2i==0 ? 1 : sqrt(2));
+                        fac2i = real2complex(m2i,m2i_);
                         angular_part += fac1f * fac2f * fac1i * fac2i *
                                         angular_int( (l1f,m1f_), (l2f,m2f_), (l1i,m1i_), (l2i,m2i_), (L,M); norm=false);
                         m2i == 0 && break;
@@ -124,6 +124,13 @@ function angular_int(lm1f, lm2f, lm1i, lm2i, LM; norm=false)
             sph3product(l2f,m2f,L,-M,l2i,m2i);
     norm && return int * sqrt( (2l1f+1)/(2l1i+1)*(2l2f+1)/(2l2i+1) );
     return int;
+end
+
+function real2complex(m, m_)
+    fac = (m==0 ? 1
+                : 1/sqrt(2) * ( m<0 ? -1im * (m_>0 ? (-1)^m : -1)
+                                    :    1 * (m_>0 ? (-1)^m :  1) ));
+    return fac; 
 end
 
 function rad2product(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun)
