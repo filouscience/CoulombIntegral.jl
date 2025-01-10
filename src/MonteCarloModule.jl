@@ -19,7 +19,7 @@
 module MonteCarloModule
 
 import CoulombIntegral: Method, coulomb_integral
-export MonteCarlo, coulomb_integral
+export MonteCarlo, MonteCarloSymmetrized, coulomb_integral
 
 using Random
 using SphericalHarmonics # implemented without Condon-Shortley phase: (-1)^m
@@ -28,19 +28,36 @@ struct MonteCarlo <: Method
     n::Integer
 
     function MonteCarlo(n::Integer)
-        n > 0 || error("Number of MC evaluations must be a positive integer.")
+        n > 0 || throw(DomainError("Number of MC evaluations must be a positive integer."));
         return new(n);
     end
 end
 
-function coulomb_integral(method::MonteCarlo,
+struct MonteCarloSymmetrized <: Method
+    n::Integer
+
+    function MonteCarloSymmetrized(n::Integer)
+        n > 0 || throw(DomainError("Number of MC evaluations must be a positive integer."));
+        return new(n);
+    end
+end
+
+function coulomb_integral(method::Union{MonteCarlo,MonteCarloSymmetrized},
                         r1f_fun::Function, lm1f::Tuple{<:Integer,<:Integer},
                         r2f_fun::Function, lm2f::Tuple{<:Integer,<:Integer},
                         r1i_fun::Function, lm1i::Tuple{<:Integer,<:Integer},
                         r2i_fun::Function, lm2i::Tuple{<:Integer,<:Integer};
-                        R::Real=1.0, real_sph::Bool=false, recalc::Bool=false, symmetrize::Bool=false)
-    symmetrize && return symmetrized_integral(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, real_sph);
-    
+                        R::Real=1.0, SH_basis::Symbol=:complex, recalc::Bool=false)
+    return coulomb_integral_(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{SH_basis}, recalc);
+end
+
+function coulomb_integral_(method::Union{MonteCarlo,MonteCarloSymmetrized},
+                        r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i,
+                        R, ::Type{Val{SH_basis}}, recalc) where SH_basis
+    throw(ArgumentError("supported 'SH_basis' are :complex or :real"));
+end
+
+function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:real}}, recalc)
     M = 0;
     S = 0;
     reg2 = (R * 1e-4)^2; # distance regularization
@@ -51,25 +68,15 @@ function coulomb_integral(method::MonteCarlo,
         r1,  r2  = R .* rad.(u[1:2]);
         th1, th2 = theta.(u[3:4]);
         ph1, ph2 = phi.(u[5:6]);
-        if (real_sph)
-            Y1 = computeYlm(th1, ph1; lmax=l1max, SHType = SphericalHarmonics.RealHarmonics());
-            Y2 = computeYlm(th2, ph2; lmax=l2max, SHType = SphericalHarmonics.RealHarmonics());
-        else
-            Y1 = computeYlm(th1, ph1; lmax=l1max, SHType = SphericalHarmonics.ComplexHarmonics());
-            Y2 = computeYlm(th2, ph2; lmax=l2max, SHType = SphericalHarmonics.ComplexHarmonics());
-        end
+        Y1 = computeYlm(th1, ph1; lmax=l1max, SHType = SphericalHarmonics.RealHarmonics());
+        Y2 = computeYlm(th2, ph2; lmax=l2max, SHType = SphericalHarmonics.RealHarmonics());
 
         # integrand value
         val = conj( r1f_fun(r1) * r2f_fun(r2) * Y1[lm1f] * Y2[lm2f] ) *
                   ( r1i_fun(r1) * r2i_fun(r2) * Y1[lm1i] * Y2[lm2i] ) /
                   sqrt( dist2(r1, th1, ph1, r2, th2, ph2) + reg2 );
 
-        # Welford's online algorithm
-        delta1 = val - M;
-        M += delta1 / itr;
-        delta2 = val - M;
-        S += abs( delta1 * delta2 );
-        
+        S, M = welford(val, itr, S, M);
     end # for
     
     vol = (4/3*pi)^2 * R^6;
@@ -82,12 +89,39 @@ function coulomb_integral(method::MonteCarlo,
     return (est, std);
 end
 
-function symmetrized_integral(method::MonteCarlo,
-                        r1f_fun::Function, lm1f::Tuple{<:Integer,<:Integer},
-                        r2f_fun::Function, lm2f::Tuple{<:Integer,<:Integer},
-                        r1i_fun::Function, lm1i::Tuple{<:Integer,<:Integer},
-                        r2i_fun::Function, lm2i::Tuple{<:Integer,<:Integer},
-                        R, real_sph)
+function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:complex}}, recalc)
+    M = 0;
+    S = 0;
+    reg2 = (R * 1e-4)^2; # distance regularization
+    l1max = max( lm1i[1], lm1f[1] );
+    l2max = max( lm2i[1], lm2f[1] );
+    for itr in 1:method.n
+        u = rand(Float64,6);
+        r1,  r2  = R .* rad.(u[1:2]);
+        th1, th2 = theta.(u[3:4]);
+        ph1, ph2 = phi.(u[5:6]);
+        Y1 = computeYlm(th1, ph1; lmax=l1max, SHType = SphericalHarmonics.ComplexHarmonics());
+        Y2 = computeYlm(th2, ph2; lmax=l2max, SHType = SphericalHarmonics.ComplexHarmonics());
+
+        # integrand value
+        val = conj( r1f_fun(r1) * r2f_fun(r2) * Y1[lm1f] * Y2[lm2f] ) *
+                  ( r1i_fun(r1) * r2i_fun(r2) * Y1[lm1i] * Y2[lm2i] ) /
+                  sqrt( dist2(r1, th1, ph1, r2, th2, ph2) + reg2 );
+
+        S, M = welford(val, itr, S, M);
+    end # for
+    
+    vol = (4/3*pi)^2 * R^6;
+    # estimated value of the integral
+    est = vol * M;
+    # standard deviation:
+    std = method.n > 1 ? vol * sqrt( S / (method.n - 1) ) / sqrt(method.n) : NaN;
+                                  # ^^sample variance^^
+    println("integral estimate: $est, error estimate: $std");
+    return (est, std);
+end
+
+function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:real}}, recalc)
     M = 0;
     S = 0;
     reg2 = (R * 1e-4)^2;
@@ -100,13 +134,8 @@ function symmetrized_integral(method::MonteCarlo,
         ph1, ph2 = phi.(u[5:6]);
         a1 = symmetrize([th1,ph1]);
         a2 = symmetrize([th2,ph2]);
-        if (real_sph)
-            Y1 = computeYlm.(a1[:,1], a1[:,2]; lmax=l1max, SHType = SphericalHarmonics.RealHarmonics());
-            Y2 = computeYlm.(a2[:,1], a2[:,2]; lmax=l2max, SHType = SphericalHarmonics.RealHarmonics());
-        else
-            Y1 = computeYlm.(a1[:,1], a1[:,2]; lmax=l1max, SHType = SphericalHarmonics.ComplexHarmonics());
-            Y2 = computeYlm.(a2[:,1], a2[:,2]; lmax=l2max, SHType = SphericalHarmonics.ComplexHarmonics());
-        end
+        Y1 = computeYlm.(a1[:,1], a1[:,2]; lmax=l1max, SHType = SphericalHarmonics.RealHarmonics());
+        Y2 = computeYlm.(a2[:,1], a2[:,2]; lmax=l2max, SHType = SphericalHarmonics.RealHarmonics());
 
         # integrand value
         fac = r1f_fun(r1) * r2f_fun(r2) * r1i_fun(r1) * r2i_fun(r2) / sqrt( dist2(r1, th1, ph1, r2, th2, ph2) + reg2 ) / 8;
@@ -116,13 +145,7 @@ function symmetrized_integral(method::MonteCarlo,
             # cannot broadcast. Y1[:][(l,m)] throws error.
         end
         val *= fac;
-
-        # Welford's online algorithm
-        delta1 = val - M;
-        M += delta1 / itr;
-        delta2 = val - M;
-        S += abs( delta1 * delta2 );
-        
+        S, M = welford(val, itr, S, M);
     end # for
     
     vol = (4/3*π)^2 * R^6;
@@ -133,6 +156,52 @@ function symmetrized_integral(method::MonteCarlo,
     
     println("integral estimate: $est, error estimate: $std");
     return (est, std);
+end
+
+function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:complex}}, recalc)
+    M = 0;
+    S = 0;
+    reg2 = (R * 1e-4)^2;
+    l1max = max( lm1i[1], lm1f[1] );
+    l2max = max( lm2i[1], lm2f[1] );
+    for itr in 1:method.n
+        u = rand(Float64,6);
+        r1,  r2  = R .* rad.(u[1:2]);
+        th1, th2 = theta.(u[3:4]);
+        ph1, ph2 = phi.(u[5:6]);
+        a1 = symmetrize([th1,ph1]);
+        a2 = symmetrize([th2,ph2]);
+        Y1 = computeYlm.(a1[:,1], a1[:,2]; lmax=l1max, SHType = SphericalHarmonics.ComplexHarmonics());
+        Y2 = computeYlm.(a2[:,1], a2[:,2]; lmax=l2max, SHType = SphericalHarmonics.ComplexHarmonics());
+
+        # integrand value
+        fac = r1f_fun(r1) * r2f_fun(r2) * r1i_fun(r1) * r2i_fun(r2) / sqrt( dist2(r1, th1, ph1, r2, th2, ph2) + reg2 ) / 8;
+        val = 0;
+        for jtr in 1:8
+            val += conj( Y1[jtr][lm1f] * Y2[jtr][lm2f] ) * Y1[jtr][lm1i] * Y2[jtr][lm2i];
+            # cannot broadcast. Y1[:][(l,m)] throws error.
+        end
+        val *= fac;
+        S, M = welford(val, itr, S, M);
+    end # for
+    
+    vol = (4/3*π)^2 * R^6;
+    # estimated value of the integral:
+    est = vol * M;
+    # standard deviation:
+    std = method.n > 1 ? vol * sqrt( S / (method.n - 1) ) / sqrt(method.n) : NaN;
+    
+    println("integral estimate: $est, error estimate: $std");
+    return (est, std);
+end
+
+function welford(val, itr, S, M)
+    # Welford's online algorithm
+    delta1 = val - M;
+    M += delta1 / itr;
+    delta2 = val - M;
+    S += abs( delta1 * delta2 );
+    return (S, M);
 end
 
 # distributions of samples in spherical coordinates

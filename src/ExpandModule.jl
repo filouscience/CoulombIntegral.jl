@@ -37,11 +37,19 @@ function coulomb_integral(method::Expand,
                         r2f_fun::Function, lm2f::Tuple{<:Integer,<:Integer},
                         r1i_fun::Function, lm1i::Tuple{<:Integer,<:Integer},
                         r2i_fun::Function, lm2i::Tuple{<:Integer,<:Integer};
-                        R::Real=1.0, real_sph::Bool=false, recalc::Bool=false)
-    real_sph && return realsph_integral(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, recalc);
+                        R::Real=1.0, SH_basis::Symbol=:complex, recalc::Bool=false)
+    return coulomb_integral_(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{SH_basis}, recalc);
+end
+
+function coulomb_integral_(method::Expand,
+                        r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i,
+                        R, ::Type{Val{SH_basis}}, recalc) where SH_basis
+    throw(ArgumentError("supported 'SH_basis' are :complex or :real"));
+end
+
+function coulomb_integral_(method::Expand, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:complex}}, recalc)   
     
     l1f, m1f, l2f, m2f, l1i, m1i, l2i, m2i = lm1f..., lm2f..., lm1i..., lm2i...;
-    
     # M==m1i-m1f && -M==m2i-m2f
     M = m1i-m1f;
     M == m2f-m2i || ( println("integral estimate: 0.0, error estimate: 0.0"); return (0, 0); );
@@ -63,14 +71,9 @@ function coulomb_integral(method::Expand,
     return (int, err);
 end
 
-function realsph_integral(method::Expand,
-                        r1f_fun::Function, lm1f::Tuple{<:Integer,<:Integer},
-                        r2f_fun::Function, lm2f::Tuple{<:Integer,<:Integer},
-                        r1i_fun::Function, lm1i::Tuple{<:Integer,<:Integer},
-                        r2i_fun::Function, lm2i::Tuple{<:Integer,<:Integer},
-                        R, recalc)
+function coulomb_integral_(method::Expand, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:real}}, recalc)
+    
     l1f, m1f, l2f, m2f, l1i, m1i, l2i, m2i = lm1f..., lm2f..., lm1i..., lm2i...;
-
     minL = max( abs(l1f-l1i), abs(l2f-l2i) );
     maxL = min( l1f+l1i, l2f+l2i );
     int, err = (0, 0);
