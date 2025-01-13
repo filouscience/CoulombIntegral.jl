@@ -18,7 +18,7 @@
 
 module ExpandModule
 
-import CoulombIntegral: Method, coulomb_integral
+import CoulombIntegral: Method, coulomb_integral, check_SH_basis
 export Expand, coulomb_integral
 
 using WignerSymbols
@@ -32,19 +32,20 @@ struct Expand <: Method
     end
 end
 
-function coulomb_integral(method::Expand,
-                        r1f_fun::Function, lm1f::Tuple{<:Integer,<:Integer},
-                        r2f_fun::Function, lm2f::Tuple{<:Integer,<:Integer},
-                        r1i_fun::Function, lm1i::Tuple{<:Integer,<:Integer},
-                        r2i_fun::Function, lm2i::Tuple{<:Integer,<:Integer};
+function coulomb_integral(method::Expand, rwfn_getter::Function,
+                        nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
+                        nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
                         R::Real=1.0, SH_basis::Symbol=:complex, recalc::Bool=false)
-    return coulomb_integral_(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{SH_basis}, recalc);
-end
 
-function coulomb_integral_(method::Expand,
-                        r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i,
-                        R, ::Type{Val{SH_basis}}, recalc) where SH_basis
-    throw(ArgumentError("supported 'SH_basis' are :complex or :real"));
+    check_SH_basis(Val{SH_basis});
+
+    n1f, l1f, m1f, n2f, l2f, m2f, n1i, l1i, m1i, n2i, l2i, m2i = nlm1f...,nlm2f...,nlm1i...,nlm2i...;
+    lm1f, lm2f, lm1i, lm2i = (l1f,m1f), (l2f,m2f), (l1i,m1i), (l2i,m2i);
+    r1f_fun, r2f_fun, r1i_fun, r2i_fun = rwfn_getter((n1f,l1f)), rwfn_getter((n2f,l2f)), rwfn_getter((n1i,l1i)), rwfn_getter((n2i,l2i));
+    
+    ci = coulomb_integral_(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{SH_basis}, recalc);
+
+    return ci;
 end
 
 function coulomb_integral_(method::Expand, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:complex}}, recalc)   

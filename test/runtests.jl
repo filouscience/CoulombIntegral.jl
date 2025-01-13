@@ -18,14 +18,15 @@ using Aqua
             @test isapprox(d, 2, atol=1e-9)
         end
         @testset "MC integral" begin
+            rfun(nl) = x->1;
             # odd integrand: zero
-            int0 = coulomb_integral(MonteCarloSymmetrized(100), (x)->1,(0,0), (x)->1,(1,0), (x)->1,(0,0), (x)->1,(1,-1));
+            int0 = coulomb_integral(MonteCarloSymmetrized(100), rfun, (1,0,0),(1,1,0),(1,0,0),(1,1,-1));
             @test  isapprox(0, int0[1], atol=1e-9)
             # even integrand (all x,y,z directions): non-zero
-            int1 = coulomb_integral(MonteCarloSymmetrized(100; seed=1), (x)->1,(0,0), (x)->1,(1,0), (x)->1,(0,0), (x)->1,(1,0));
+            int1 = coulomb_integral(MonteCarloSymmetrized(100; seed=1), rfun, (1,0,0),(1,1,0),(1,0,0),(1,1,0));
             @test !isapprox(0, int1[1], atol=1e-9)
             # even integrand: same result of 'symmetrize=true' and 'symmetrize=false'
-            int2 = coulomb_integral(MonteCarlo(100; seed=1), (x)->1,(0,0), (x)->1,(1,0), (x)->1,(0,0), (x)->1,(1,0));
+            int2 = coulomb_integral(MonteCarlo(100; seed=1), rfun, (1,0,0),(1,1,0),(1,0,0),(1,1,0));
             @test isapprox(int1[1], int2[1], atol=1e-9)
         end
     end

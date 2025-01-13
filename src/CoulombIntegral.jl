@@ -23,6 +23,10 @@ export coulomb_integral, MonteCarlo, MonteCarloSymmetrized, Expand
 abstract type Method end
 function coulomb_integral end
 
+check_SH_basis(::Type{Val{SH_basis}}) where SH_basis = throw(ArgumentError("supported 'SH_basis' are :complex or :real"));
+check_SH_basis(::Type{Val{:complex}}) = nothing;
+check_SH_basis(::Type{Val{:real}}) = nothing;
+
 
 include("MonteCarloModule.jl");
 using .MonteCarloModule
