@@ -26,19 +26,25 @@ using SphericalHarmonics # implemented without Condon-Shortley phase: (-1)^m
 
 struct MonteCarlo <: Method
     n::Integer
+    seed_set::Bool
+    seed::Integer
 
-    function MonteCarlo(n::Integer)
+    function MonteCarlo(n::Integer; seed::Union{Nothing,Integer}=nothing)
         n > 0 || throw(DomainError("Number of MC evaluations must be a positive integer."));
-        return new(n);
+        seed == nothing && return new(n, false, 0);
+        return new(n, true, seed);
     end
 end
 
 struct MonteCarloSymmetrized <: Method
     n::Integer
+    seed_set::Bool
+    seed::Integer
 
-    function MonteCarloSymmetrized(n::Integer)
+    function MonteCarloSymmetrized(n::Integer; seed::Union{Nothing,Integer}=nothing)
         n > 0 || throw(DomainError("Number of MC evaluations must be a positive integer."));
-        return new(n);
+        seed == nothing && return new(n, false, 0);
+        return new(n, true, seed);
     end
 end
 
@@ -58,6 +64,7 @@ function coulomb_integral_(method::Union{MonteCarlo,MonteCarloSymmetrized},
 end
 
 function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:real}}, recalc)
+    method.seed_set == true && Random.seed!(method.seed);
     M = 0;
     S = 0;
     reg2 = (R * 1e-4)^2; # distance regularization
@@ -90,6 +97,7 @@ function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i
 end
 
 function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:complex}}, recalc)
+    method.seed_set == true && Random.seed!(method.seed);
     M = 0;
     S = 0;
     reg2 = (R * 1e-4)^2; # distance regularization
@@ -122,6 +130,7 @@ function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i
 end
 
 function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:real}}, recalc)
+    method.seed_set == true && Random.seed!(method.seed);
     M = 0;
     S = 0;
     reg2 = (R * 1e-4)^2;
@@ -159,6 +168,7 @@ function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun
 end
 
 function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:complex}}, recalc)
+    method.seed_set == true && Random.seed!(method.seed);
     M = 0;
     S = 0;
     reg2 = (R * 1e-4)^2;
