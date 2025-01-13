@@ -19,14 +19,14 @@
 module MonteCarloModule
 
 import CoulombIntegral: Method, coulomb_integral, check_SH_basis
-export MonteCarlo, MonteCarloSymmetrized, coulomb_integral
+export MonteCarlo, coulomb_integral
 
 using Random
 using SphericalHarmonics # implemented without Condon-Shortley phase: (-1)^m
 
 struct MonteCarlo <: Method
     n::Integer
-    seed_set::Bool
+    seeded::Bool
     seed::Integer
 
     function MonteCarlo(n::Integer; seed::Union{Nothing,Integer}=nothing)
@@ -38,13 +38,12 @@ end
 
 struct MonteCarloSymmetrized <: Method
     n::Integer
-    seed_set::Bool
+    seeded::Bool
     seed::Integer
 
-    function MonteCarloSymmetrized(n::Integer; seed::Union{Nothing,Integer}=nothing)
+    function MonteCarloSymmetrized(n::Integer; seeded=false, seed=0)
         n > 0 || throw(DomainError("Number of MC evaluations must be a positive integer."));
-        seed == nothing && return new(n, false, 0);
-        return new(n, true, seed);
+        return new(n, seeded, seed);
     end
 end
 
@@ -65,7 +64,15 @@ function coulomb_integral(method::Union{MonteCarlo,MonteCarloSymmetrized}, rwfn_
 end
 
 function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:real}}, recalc)
-    method.seed_set == true && Random.seed!(method.seed);
+    
+    symm_est, symm_err = coulomb_integral_(MonteCarloSymmetrized(100; seeded=method.seeded, seed=method.seed),
+                                            r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{:real}, recalc);
+    if isapprox(symm_est, 0.0, atol=1e-9)
+        println("integral estimate: $symm_est, error estimate: $symm_err");
+        return (symm_est, symm_err);
+    end
+    
+    method.seeded == true && Random.seed!(method.seed);
     M = 0;
     S = 0;
     reg2 = (R * 1e-4)^2; # distance regularization
@@ -98,7 +105,15 @@ function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i
 end
 
 function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:complex}}, recalc)
-    method.seed_set == true && Random.seed!(method.seed);
+
+    symm_est, symm_err = coulomb_integral_(MonteCarloSymmetrized(100; seeded=method.seeded, seed=method.seed),
+                                            r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{:complex}, recalc);
+    if isapprox(symm_est, 0.0, atol=1e-9)
+        println("integral estimate: $symm_est, error estimate: $symm_err");
+        return (symm_est, symm_err);
+    end
+    
+    method.seeded == true && Random.seed!(method.seed);
     M = 0;
     S = 0;
     reg2 = (R * 1e-4)^2; # distance regularization
@@ -131,7 +146,7 @@ function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i
 end
 
 function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:real}}, recalc)
-    method.seed_set == true && Random.seed!(method.seed);
+    method.seeded == true && Random.seed!(method.seed);
     M = 0;
     S = 0;
     reg2 = (R * 1e-4)^2;
@@ -164,12 +179,11 @@ function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun
     # standard deviation:
     std = method.n > 1 ? vol * sqrt( S / (method.n - 1) ) / sqrt(method.n) : NaN;
     
-    println("integral estimate: $est, error estimate: $std");
     return (est, std);
 end
 
 function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:complex}}, recalc)
-    method.seed_set == true && Random.seed!(method.seed);
+    method.seeded == true && Random.seed!(method.seed);
     M = 0;
     S = 0;
     reg2 = (R * 1e-4)^2;
@@ -202,7 +216,6 @@ function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun
     # standard deviation:
     std = method.n > 1 ? vol * sqrt( S / (method.n - 1) ) / sqrt(method.n) : NaN;
     
-    println("integral estimate: $est, error estimate: $std");
     return (est, std);
 end
 

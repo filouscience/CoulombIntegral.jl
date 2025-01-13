@@ -18,7 +18,7 @@
 
 module CoulombIntegral
 
-export coulomb_integral, MonteCarlo, MonteCarloSymmetrized, Expand
+export coulomb_integral, MonteCarlo, Expand
 
 abstract type Method end
 function coulomb_integral end
