@@ -25,29 +25,29 @@ using Random
 using SphericalHarmonics # implemented without Condon-Shortley phase: (-1)^m
 
 struct MonteCarlo <: Method
-    n::Integer
+    N::Integer
     seeded::Bool
     seed::Integer
 
-    function MonteCarlo(n::Integer; seed::Union{Nothing,Integer}=nothing)
-        n > 0 || throw(DomainError("Number of MC evaluations must be a positive integer."));
-        seed == nothing && return new(n, false, 0);
-        return new(n, true, seed);
+    function MonteCarlo(N::Integer; seed::Union{Nothing,Integer}=nothing)
+        N > 0 || throw(DomainError("Number of MC evaluations must be a positive integer."));
+        seed == nothing && return new(N, false, 0);
+        return new(N, true, seed);
     end
 end
 
-struct MonteCarloSymmetrized <: Method
-    n::Integer
+struct MonteCarloSymmetrized
+    N::Integer
     seeded::Bool
     seed::Integer
 
-    function MonteCarloSymmetrized(n::Integer; seeded=false, seed=0)
-        n > 0 || throw(DomainError("Number of MC evaluations must be a positive integer."));
-        return new(n, seeded, seed);
+    function MonteCarloSymmetrized(N::Integer; seeded=false, seed=0)
+        N > 0 || throw(DomainError("Number of MC evaluations must be a positive integer."));
+        return new(N, seeded, seed);
     end
 end
 
-function coulomb_integral(method::Union{MonteCarlo,MonteCarloSymmetrized}, rwfn_getter::Function,
+function coulomb_integral(method::MonteCarlo, rwfn_getter::Function,
                         nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
                         nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
                         R::Real=1.0, SH_basis::Symbol=:complex, recalc::Bool=false)
@@ -57,28 +57,43 @@ function coulomb_integral(method::Union{MonteCarlo,MonteCarloSymmetrized}, rwfn_
     n1f, l1f, m1f, n2f, l2f, m2f, n1i, l1i, m1i, n2i, l2i, m2i = nlm1f...,nlm2f...,nlm1i...,nlm2i...;
     lm1f, lm2f, lm1i, lm2i = (l1f,m1f), (l2f,m2f), (l1i,m1i), (l2i,m2i);
     r1f_fun, r2f_fun, r1i_fun, r2i_fun = rwfn_getter((n1f,l1f)), rwfn_getter((n2f,l2f)), rwfn_getter((n1i,l1i)), rwfn_getter((n2i,l2i));
-    
-    ci = coulomb_integral_(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{SH_basis}, recalc);
+
+    start = (M=0, S=0, N=1);
+    ci = coulomb_integral_(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{SH_basis}, start);
 
     return ci;
 end
 
-function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:real}}, recalc)
+function coulomb_integral(method::MonteCarloSymmetrized, rwfn_getter::Function,
+                        nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
+                        nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
+                        R::Real=1.0, SH_basis::Symbol=:complex)
+
+    check_SH_basis(Val{SH_basis});
+
+    n1f, l1f, m1f, n2f, l2f, m2f, n1i, l1i, m1i, n2i, l2i, m2i = nlm1f...,nlm2f...,nlm1i...,nlm2i...;
+    lm1f, lm2f, lm1i, lm2i = (l1f,m1f), (l2f,m2f), (l1i,m1i), (l2i,m2i);
+    r1f_fun, r2f_fun, r1i_fun, r2i_fun = rwfn_getter((n1f,l1f)), rwfn_getter((n2f,l2f)), rwfn_getter((n1i,l1i)), rwfn_getter((n2i,l2i));
+
+    return coulomb_integral_(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{SH_basis});
+end
+
+function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:real}}, start)
     
-    symm_est, symm_err = coulomb_integral_(MonteCarloSymmetrized(100; seeded=method.seeded, seed=method.seed),
-                                            r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{:real}, recalc);
-    if isapprox(symm_est, 0.0, atol=1e-9)
-        println("integral estimate: $symm_est, error estimate: $symm_err");
-        return (symm_est, symm_err);
+    est, err, M, S = coulomb_integral_(MonteCarloSymmetrized(100; seeded=method.seeded, seed=method.seed),
+                                            r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{:real});
+    if isapprox(est, 0.0, atol=1e-9)
+        println("integral estimate: $est, error estimate: $err");
+        return (est, err, M, S);
     end
     
     method.seeded == true && Random.seed!(method.seed);
-    M = 0;
-    S = 0;
+    M = start.M;
+    S = start.S;
     reg2 = (R * 1e-4)^2; # distance regularization
     l1max = max( lm1i[1], lm1f[1] );
     l2max = max( lm2i[1], lm2f[1] );
-    for itr in 1:method.n
+    for itr in start.N:method.N
         u = rand(Float64,6);
         r1,  r2  = R .* rad.(u[1:2]);
         th1, th2 = theta.(u[3:4]);
@@ -91,35 +106,35 @@ function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i
                   ( r1i_fun(r1) * r2i_fun(r2) * Y1[lm1i] * Y2[lm2i] ) /
                   sqrt( dist2(r1, th1, ph1, r2, th2, ph2) + reg2 );
 
-        S, M = welford(val, itr, S, M);
+        M, S = welford(val, itr, M, S);
     end # for
     
     vol = (4/3*pi)^2 * R^6;
     # estimated value of the integral
     est = vol * M;
     # standard deviation:
-    std = method.n > 1 ? vol * sqrt( S / (method.n - 1) ) / sqrt(method.n) : NaN;
+    std = method.N > 1 ? vol * sqrt( S / (method.N - 1) ) / sqrt(method.N) : NaN;
                                   # ^^sample variance^^
     println("integral estimate: $est, error estimate: $std");
-    return (est, std);
+    return (est, std, M, S);
 end
 
-function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:complex}}, recalc)
+function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:complex}}, start)
 
-    symm_est, symm_err = coulomb_integral_(MonteCarloSymmetrized(100; seeded=method.seeded, seed=method.seed),
-                                            r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{:complex}, recalc);
-    if isapprox(symm_est, 0.0, atol=1e-9)
-        println("integral estimate: $symm_est, error estimate: $symm_err");
-        return (symm_est, symm_err);
+    est, err, M, S = coulomb_integral_(MonteCarloSymmetrized(100; seeded=method.seeded, seed=method.seed),
+                                            r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{:complex});
+    if isapprox(est, 0.0, atol=1e-9)
+        println("integral estimate: $est, error estimate: $err");
+        return (est, err, M, S);
     end
     
     method.seeded == true && Random.seed!(method.seed);
-    M = 0;
-    S = 0;
+    M = start.M;
+    S = start.S;
     reg2 = (R * 1e-4)^2; # distance regularization
     l1max = max( lm1i[1], lm1f[1] );
     l2max = max( lm2i[1], lm2f[1] );
-    for itr in 1:method.n
+    for itr in start.N:method.N
         u = rand(Float64,6);
         r1,  r2  = R .* rad.(u[1:2]);
         th1, th2 = theta.(u[3:4]);
@@ -132,27 +147,27 @@ function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i
                   ( r1i_fun(r1) * r2i_fun(r2) * Y1[lm1i] * Y2[lm2i] ) /
                   sqrt( dist2(r1, th1, ph1, r2, th2, ph2) + reg2 );
 
-        S, M = welford(val, itr, S, M);
+        M, S = welford(val, itr, M, S);
     end # for
     
     vol = (4/3*pi)^2 * R^6;
     # estimated value of the integral
     est = vol * M;
     # standard deviation:
-    std = method.n > 1 ? vol * sqrt( S / (method.n - 1) ) / sqrt(method.n) : NaN;
+    std = method.N > 1 ? vol * sqrt( S / (method.N - 1) ) / sqrt(method.N) : NaN;
                                   # ^^sample variance^^
     println("integral estimate: $est, error estimate: $std");
-    return (est, std);
+    return (est, std, M, S);
 end
 
-function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:real}}, recalc)
+function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:real}})
     method.seeded == true && Random.seed!(method.seed);
     M = 0;
     S = 0;
     reg2 = (R * 1e-4)^2;
     l1max = max( lm1i[1], lm1f[1] );
     l2max = max( lm2i[1], lm2f[1] );
-    for itr in 1:method.n
+    for itr in 1:method.N
         u = rand(Float64,6);
         r1,  r2  = R .* rad.(u[1:2]);
         th1, th2 = theta.(u[3:4]);
@@ -170,26 +185,26 @@ function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun
             # cannot broadcast. Y1[:][(l,m)] throws error.
         end
         val *= fac;
-        S, M = welford(val, itr, S, M);
+        M, S = welford(val, itr, M, S);
     end # for
     
     vol = (4/3*π)^2 * R^6;
     # estimated value of the integral:
     est = vol * M;
     # standard deviation:
-    std = method.n > 1 ? vol * sqrt( S / (method.n - 1) ) / sqrt(method.n) : NaN;
+    std = method.N > 1 ? vol * sqrt( S / (method.N - 1) ) / sqrt(method.N) : NaN;
     
-    return (est, std);
+    return (est, std, M, S);
 end
 
-function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:complex}}, recalc)
+function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:complex}})
     method.seeded == true && Random.seed!(method.seed);
     M = 0;
     S = 0;
     reg2 = (R * 1e-4)^2;
     l1max = max( lm1i[1], lm1f[1] );
     l2max = max( lm2i[1], lm2f[1] );
-    for itr in 1:method.n
+    for itr in 1:method.N
         u = rand(Float64,6);
         r1,  r2  = R .* rad.(u[1:2]);
         th1, th2 = theta.(u[3:4]);
@@ -207,25 +222,25 @@ function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun
             # cannot broadcast. Y1[:][(l,m)] throws error.
         end
         val *= fac;
-        S, M = welford(val, itr, S, M);
+        M, S = welford(val, itr, M, S);
     end # for
     
     vol = (4/3*π)^2 * R^6;
     # estimated value of the integral:
     est = vol * M;
     # standard deviation:
-    std = method.n > 1 ? vol * sqrt( S / (method.n - 1) ) / sqrt(method.n) : NaN;
+    std = method.N > 1 ? vol * sqrt( S / (method.N - 1) ) / sqrt(method.N) : NaN;
     
-    return (est, std);
+    return (est, std, M, S);
 end
 
-function welford(val, itr, S, M)
+function welford(val, itr, M, S)
     # Welford's online algorithm
     delta1 = val - M;
     M += delta1 / itr;
     delta2 = val - M;
     S += abs( delta1 * delta2 );
-    return (S, M);
+    return (M, S);
 end
 
 # distributions of samples in spherical coordinates
