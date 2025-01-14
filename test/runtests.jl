@@ -9,37 +9,34 @@ using Aqua
     end
     # Write your tests here.
     @testset "MonteCarlo" begin
+        import CoulombIntegral.MonteCarloModule as MC
         @testset "MC utils" begin
             a1 = [ π*rand(), 2π*rand() ];
-            a2 = CoulombIntegral.MonteCarloModule.z_inv(
-                    CoulombIntegral.MonteCarloModule.y_inv(
-                        CoulombIntegral.MonteCarloModule.x_inv(a1) ) );
-            d = sqrt( CoulombIntegral.MonteCarloModule.dist2(1, a1..., 1, a2...) );
+            a2 = MC.z_inv( MC.y_inv( MC.x_inv(a1) ) );
+            d = sqrt( MC.dist2(1, a1..., 1, a2...) );
             @test isapprox(d, 2, atol=1e-9)
         end
         @testset "MC integral" begin
             R = 1.0;
             sh_type = Val{:complex};
             # odd integrand: zero
-            int0 = CoulombIntegral.MonteCarloModule.coulomb_integral_(CoulombIntegral.MonteCarloModule.MonteCarloSymmetrized(100),
-                                                                        x->1,(0,0), x->1,(1,0), x->1,(0,0), x->1,(1,-1), R, sh_type);
+            int0 = MC.coulomb_integral_(MC.MonteCarloSymmetrized(100), x->1,(0,0), x->1,(1,0), x->1,(0,0), x->1,(1,-1), R, sh_type);
             @test  isapprox(0, int0[1], atol=1e-9)
             # even integrand (all x,y,z directions): non-zero
-            int1 = CoulombIntegral.MonteCarloModule.coulomb_integral_(CoulombIntegral.MonteCarloModule.MonteCarloSymmetrized(100; seeded=true, seed=1),
-                                                                        x->1,(0,0), x->1,(1,0), x->1,(0,0), x->1,(1,0), R, sh_type);
+            int1 = MC.coulomb_integral_(MC.MonteCarloSymmetrized(100; seeded=true, seed=1), x->1,(0,0), x->1,(1,0), x->1,(0,0), x->1,(1,0), R, sh_type);
             @test !isapprox(0, int1[1], atol=1e-9)
             # even integrand: same result of 'symmetrize=true' and 'symmetrize=false'
-            int2 = CoulombIntegral.MonteCarloModule.coulomb_integral_(MonteCarlo(100; seed=1),
-                                                                        x->1,(0,0), x->1,(1,0), x->1,(0,0), x->1,(1,0), R, sh_type, (M=0,S=0,N=1));
+            int2 = MC.coulomb_integral_(MonteCarlo(100; seed=1), x->1,(0,0), x->1,(1,0), x->1,(0,0), x->1,(1,0), R, sh_type, (M=0,S=0,N=1));
             @test isapprox(int1[1], int2[1], atol=1e-9)
         end
     end
     @testset "Expand" begin
+        import CoulombIntegral.ExpandModule as ex
         @testset "radial part" begin
             # compare radial part integral with simple-case analytic solution
             analytic(L) = L==2 ? 2/25 : 1/5*1/(L+3) - 1/5*1/(2-L) + 1/(L+3)*1/(2-L);
             for l in 1:5
-                int, err = CoulombIntegral.ExpandModule.radial_int(l, (x)->1, (x)->1, (x)->1, (x)->1, 1.0);
+                int, err = ex.radial_int(l, (x)->1, (x)->1, (x)->1, (x)->1, 1.0);
                 @test isapprox(int, analytic(l), atol=err)
             end
         end
@@ -48,20 +45,20 @@ using Aqua
             l1, m1 = (1, 1);
             l2, m2 = (2,-1);
             L,  M  = (3, 0);
-            a1 = CoulombIntegral.ExpandModule.sph3product(l1,+m1,l2,+m2, L, +M; norm=true);
-            a2 = CoulombIntegral.ExpandModule.sph3product(l2,+m2,l1,+m1, L, +M; norm=true);
-            a3 = CoulombIntegral.ExpandModule.sph3product(l1,+m1, L, -M,l2,-m2; norm=true)*(-1)^(M-m1);
-            a4 = CoulombIntegral.ExpandModule.sph3product( L, -M,l2,+m2,l1,-m1; norm=true)*(-1)^(M-m1);
+            a1 = ex.sph3product(l1,+m1,l2,+m2, L, +M; norm=true);
+            a2 = ex.sph3product(l2,+m2,l1,+m1, L, +M; norm=true);
+            a3 = ex.sph3product(l1,+m1, L, -M,l2,-m2; norm=true)*(-1)^(M-m1);
+            a4 = ex.sph3product( L, -M,l2,+m2,l1,-m1; norm=true)*(-1)^(M-m1);
             @test isapprox([a1,a1,a1], [a2,a3,a4], atol=1e-9)
-            b = [CoulombIntegral.ExpandModule.real2complex(-2,-2),
-                 CoulombIntegral.ExpandModule.real2complex(-2,+2),
-                 CoulombIntegral.ExpandModule.real2complex(-1,-1),
-                 CoulombIntegral.ExpandModule.real2complex(-1,+1),
-                 CoulombIntegral.ExpandModule.real2complex( 0, 0),
-                 CoulombIntegral.ExpandModule.real2complex(+1,-1),
-                 CoulombIntegral.ExpandModule.real2complex(+1,+1),
-                 CoulombIntegral.ExpandModule.real2complex(+2,-2),
-                 CoulombIntegral.ExpandModule.real2complex(+2,+2)];
+            b = [ex.real2complex(-2,-2),
+                 ex.real2complex(-2,+2),
+                 ex.real2complex(-1,-1),
+                 ex.real2complex(-1,+1),
+                 ex.real2complex( 0, 0),
+                 ex.real2complex(+1,-1),
+                 ex.real2complex(+1,+1),
+                 ex.real2complex(+2,-2),
+                 ex.real2complex(+2,+2)];
             @test isapprox(b, 1/sqrt(2).*[+1im,-1im,+1im,+1im,sqrt(2), +1, -1, +1, +1], atol=1e-9);
         end
     end
