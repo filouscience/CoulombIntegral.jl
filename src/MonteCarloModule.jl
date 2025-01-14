@@ -18,9 +18,10 @@
 
 module MonteCarloModule
 
-import CoulombIntegral: Method, coulomb_integral, check_SH_basis
 export MonteCarlo, coulomb_integral
 
+import CoulombIntegral: Method, coulomb_integral, check_SH_basis
+import CoulombIntegral.FileIOModule as io
 using Random
 using SphericalHarmonics # implemented without Condon-Shortley phase: (-1)^m
 
@@ -47,6 +48,9 @@ struct MonteCarloSymmetrized
     end
 end
 
+io.get_dataset_name(::MonteCarlo, ::Type{Val{:complex}}) = "data_montecarlo_cx";
+io.get_dataset_name(::MonteCarlo, ::Type{Val{:real}}) = "data_montecarlo_re";
+
 function coulomb_integral(method::MonteCarlo, rwfn_getter::Function,
                         nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
                         nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
@@ -54,14 +58,30 @@ function coulomb_integral(method::MonteCarlo, rwfn_getter::Function,
 
     check_SH_basis(Val{SH_basis});
 
+    # see if this integral has already been evaluated:
+    dataset_name = io.get_dataset_name(method, Val{SH_basis});
+    dataset = io.load_dataset(dataset_name);
+    key1 = (nlm1f,nlm2f,nlm1i,nlm2i);
+    haskey(dataset, key1) && dataset[key1].N >= method.N && (recalc || return dataset[key1]; );
+    key2 = (nlm1i,nlm2i,nlm1f,nlm2f); # Hamiltonian is a Hermitian matrix
+    haskey(dataset, key2) && dataset[key2].N >= method.N && (recalc || return conj.(dataset[key2]); ); # relevant fields other than 'int' are always real.
+
+    # parse parameters:
     n1f, l1f, m1f, n2f, l2f, m2f, n1i, l1i, m1i, n2i, l2i, m2i = nlm1f...,nlm2f...,nlm1i...,nlm2i...;
     lm1f, lm2f, lm1i, lm2i = (l1f,m1f), (l2f,m2f), (l1i,m1i), (l2i,m2i);
     r1f_fun, r2f_fun, r1i_fun, r2i_fun = rwfn_getter((n1f,l1f)), rwfn_getter((n2f,l2f)), rwfn_getter((n1i,l1i)), rwfn_getter((n2i,l2i));
 
-    start = (M=0, S=0, N=1);
+    # MC initial state:
+    start = ((haskey(dataset, key1) && !recalc) ? (M = dataset[key1].M, S = dataset[key1].S, N = dataset[key1].N + 1)
+                                                : (M = 0, S = 0, N = 1) );
+    # integral evaluation, dispatch:
     ci = coulomb_integral_(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{SH_basis}, start);
 
-    return ci;
+    # save!
+    dataset[key1] = (ci..., N = method.N);
+    io.save_dataset!(dataset_name, dataset);
+
+    return dataset[key1];
 end
 
 function coulomb_integral(method::MonteCarloSymmetrized, rwfn_getter::Function,
@@ -84,7 +104,7 @@ function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i
                                             r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{:real});
     if isapprox(est, 0.0, atol=1e-9)
         println("integral estimate: $est, error estimate: $err");
-        return (est, err, M, S);
+        return (int = est, err = std, M = M, S = S);
     end
     
     method.seeded == true && Random.seed!(method.seed);
@@ -116,7 +136,7 @@ function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i
     std = method.N > 1 ? vol * sqrt( S / (method.N - 1) ) / sqrt(method.N) : NaN;
                                   # ^^sample variance^^
     println("integral estimate: $est, error estimate: $std");
-    return (est, std, M, S);
+    return (int = est, err = std, M = M, S = S);
 end
 
 function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:complex}}, start)
@@ -125,7 +145,7 @@ function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i
                                             r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{:complex});
     if isapprox(est, 0.0, atol=1e-9)
         println("integral estimate: $est, error estimate: $err");
-        return (est, err, M, S);
+        return (int = est, err = std, M = M, S = S);
     end
     
     method.seeded == true && Random.seed!(method.seed);
@@ -157,7 +177,7 @@ function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i
     std = method.N > 1 ? vol * sqrt( S / (method.N - 1) ) / sqrt(method.N) : NaN;
                                   # ^^sample variance^^
     println("integral estimate: $est, error estimate: $std");
-    return (est, std, M, S);
+    return (int = est, err = std, M = M, S = S);
 end
 
 function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:real}})
@@ -194,7 +214,7 @@ function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun
     # standard deviation:
     std = method.N > 1 ? vol * sqrt( S / (method.N - 1) ) / sqrt(method.N) : NaN;
     
-    return (est, std, M, S);
+    return (int = est, err = std, M = M, S = S);
 end
 
 function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:complex}})
@@ -231,7 +251,7 @@ function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun
     # standard deviation:
     std = method.N > 1 ? vol * sqrt( S / (method.N - 1) ) / sqrt(method.N) : NaN;
     
-    return (est, std, M, S);
+    return (int = est, err = std, M = M, S = S);
 end
 
 function welford(val, itr, M, S)

@@ -16,23 +16,24 @@
  =  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  =#
 
-module CoulombIntegral
+module FileIOModule
 
-export coulomb_integral, MonteCarlo, Expand
+#export ...
 
-abstract type Method end
-function coulomb_integral end
+using JLD2
 
-check_SH_basis(::Type{Val{SH_basis}}) where SH_basis = throw(ArgumentError("supported 'SH_basis' are :complex or :real"));
-check_SH_basis(::Type{Val{:complex}}) = nothing;
-check_SH_basis(::Type{Val{:real}}) = nothing;
+function get_dataset_name end
 
-include("FileIOModule.jl");
-#using .FileIOModule
-include("MonteCarloModule.jl");
-using .MonteCarloModule
-include("ExpandModule.jl");
-using .ExpandModule
+function save_dataset!(name, dict) # overwrites existing file
+    jldsave(name * ".jld2"; data = dict);
+end
 
+function load_dataset(name)
+    fname = name * ".jld2";
+    isfile(fname) || return Dict{Tuple,NamedTuple}();
+    f = load(fname);
+    haskey(f, "data") || return Dict{Tuple,NamedTuple}();
+    return f["data"];
+end
 
-end # module CoulombIntegral
+end # module FileIOModule

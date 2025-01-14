@@ -18,9 +18,10 @@
 
 module ExpandModule
 
-import CoulombIntegral: Method, coulomb_integral, check_SH_basis
 export Expand, coulomb_integral
 
+import CoulombIntegral: Method, coulomb_integral, check_SH_basis
+import CoulombIntegral.FileIOModule as io
 using WignerSymbols
 using HCubature
 
@@ -32,6 +33,9 @@ struct Expand <: Method
     end
 end
 
+io.get_dataset_name(::Expand, ::Type{Val{:complex}}) = "data_expand_cx";
+io.get_dataset_name(::Expand, ::Type{Val{:real}}) = "data_expand_re";
+
 function coulomb_integral(method::Expand, rwfn_getter::Function,
                         nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
                         nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
@@ -39,16 +43,30 @@ function coulomb_integral(method::Expand, rwfn_getter::Function,
 
     check_SH_basis(Val{SH_basis});
 
+    # see if this integral has already been evaluated:
+    dataset_name = io.get_dataset_name(method, Val{SH_basis});
+    dataset = io.load_dataset(dataset_name);
+    key1 = (nlm1f,nlm2f,nlm1i,nlm2i);
+    haskey(dataset, key1) && (recalc || return dataset[key1]; );
+    key2 = (nlm1i,nlm2i,nlm1f,nlm2f); # Hamiltonian is a Hermitian matrix
+    haskey(dataset, key2) && (recalc || return conj.(dataset[key2]); ); # relevant fields other than 'int' are always real.
+
+    # parse parameters:
     n1f, l1f, m1f, n2f, l2f, m2f, n1i, l1i, m1i, n2i, l2i, m2i = nlm1f...,nlm2f...,nlm1i...,nlm2i...;
     lm1f, lm2f, lm1i, lm2i = (l1f,m1f), (l2f,m2f), (l1i,m1i), (l2i,m2i);
     r1f_fun, r2f_fun, r1i_fun, r2i_fun = rwfn_getter((n1f,l1f)), rwfn_getter((n2f,l2f)), rwfn_getter((n1i,l1i)), rwfn_getter((n2i,l2i));
-    
-    ci = coulomb_integral_(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{SH_basis}, recalc);
+
+    # integral evaluation, dispatch:
+    ci = coulomb_integral_(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{SH_basis});
+
+    # save!
+    dataset[key1] = ci;
+    io.save_dataset!(dataset_name, dataset);
 
     return ci;
 end
 
-function coulomb_integral_(method::Expand, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:complex}}, recalc)   
+function coulomb_integral_(method::Expand, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:complex}})   
     
     l1f, m1f, l2f, m2f, l1i, m1i, l2i, m2i = lm1f..., lm2f..., lm1i..., lm2i...;
     # M==m1i-m1f && -M==m2i-m2f
@@ -69,10 +87,10 @@ function coulomb_integral_(method::Expand, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun
     end # for
     
     println("integral estimate: $int, error estimate: $err");
-    return (int, err);
+    return (int = int, err = err);
 end
 
-function coulomb_integral_(method::Expand, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:real}}, recalc)
+function coulomb_integral_(method::Expand, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:real}})
     
     l1f, m1f, l2f, m2f, l1i, m1i, l2i, m2i = lm1f..., lm2f..., lm1i..., lm2i...;
     minL = max( abs(l1f-l1i), abs(l2f-l2i) );
@@ -113,7 +131,7 @@ function coulomb_integral_(method::Expand, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun
     end
 
     println("integral estimate: $int, error estimate: $err");
-    return (int, err);
+    return (int = int, err = err);
 end
 
 function sph3product(l1, m1, l2, m2, L, M; norm=false)
