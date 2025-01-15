@@ -25,6 +25,25 @@ import CoulombIntegral.FileIOModule as io
 using WignerSymbols
 using HCubature
 
+"""
+# Expand
+        Expand(; kwargs...)
+
+Constructor of the Expand Method for calculation of the Coulomb integral.
+This integration method uses Laplace expansion of the Coulomb interaction potential.
+The angular part is evaluated using Clebsch-Gordan coefficients.
+The radial part is evaluated using HCubature.jl. The keyword arguments `kwargs...` are passed to the HCubature call, see `hcubature`
+
+### Example
+
+```julia-repl
+julia> coulomb_integral(Expand(), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true);
+integral estimate: 0.1333333336473175, error estimate: 1.9855191542057015e-9
+
+julia> coulomb_integral(Expand(; atol=1e-12), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true);
+integral estimate: 0.13333333333348787, error estimate: 9.999862058185256e-13
+```
+"""
 struct Expand <: Method
     HCub_kwargs # kwargs for hcubature
 

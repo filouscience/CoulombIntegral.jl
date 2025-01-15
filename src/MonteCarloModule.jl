@@ -25,6 +25,26 @@ import CoulombIntegral.FileIOModule as io
 using Random
 using SphericalHarmonics # implemented without Condon-Shortley phase: (-1)^m
 
+"""
+# MonteCarlo
+        MonteCarlo(N::Integer; seed::Union{Nothing,Integer}=nothing)
+
+Constructor of the MonteCarlo Method for calculation of the Coulomb integral.
+This integration method evaluates the integrand at `N` points (uniformly) randomly distributed
+over the integration volume (2x3D sphere), and takes the average.
+The convergence of the integral estimate is know to be ``\\sim \\sqrt{N}``.
+If specified, the `Integer` value of keyword argument `seed` is passed to `Random.seed!` of the random number generator.
+
+### Example
+
+```julia-repl
+coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true);
+integral estimate: 0.13340951032032422 + 0.0im, error estimate: 0.0003839287917078632
+
+coulomb_integral(MonteCarlo(400000), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true);
+integral estimate: 0.13338153214314047 + 0.0im, error estimate: 0.00020052562363042465
+```
+"""
 struct MonteCarlo <: Method
     N::Integer
     seeded::Bool
@@ -84,27 +104,27 @@ function coulomb_integral(method::MonteCarlo, rwfn_getter::Function,
     return dataset[key1];
 end
 
-function coulomb_integral(method::MonteCarloSymmetrized, rwfn_getter::Function,
-                        nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
-                        nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
-                        R::Real=1.0, SH_basis::Symbol=:complex)
-
-    check_SH_basis(Val{SH_basis});
-
-    n1f, l1f, m1f, n2f, l2f, m2f, n1i, l1i, m1i, n2i, l2i, m2i = nlm1f...,nlm2f...,nlm1i...,nlm2i...;
-    lm1f, lm2f, lm1i, lm2i = (l1f,m1f), (l2f,m2f), (l1i,m1i), (l2i,m2i);
-    r1f_fun, r2f_fun, r1i_fun, r2i_fun = rwfn_getter((n1f,l1f)), rwfn_getter((n2f,l2f)), rwfn_getter((n1i,l1i)), rwfn_getter((n2i,l2i));
-
-    return coulomb_integral_(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{SH_basis});
-end
+#function coulomb_integral(method::MonteCarloSymmetrized, rwfn_getter::Function,
+#                        nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
+#                        nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
+#                        R::Real=1.0, SH_basis::Symbol=:complex)
+#
+#    check_SH_basis(Val{SH_basis});
+#
+#    n1f, l1f, m1f, n2f, l2f, m2f, n1i, l1i, m1i, n2i, l2i, m2i = nlm1f...,nlm2f...,nlm1i...,nlm2i...;
+#    lm1f, lm2f, lm1i, lm2i = (l1f,m1f), (l2f,m2f), (l1i,m1i), (l2i,m2i);
+#    r1f_fun, r2f_fun, r1i_fun, r2i_fun = rwfn_getter((n1f,l1f)), rwfn_getter((n2f,l2f)), rwfn_getter((n1i,l1i)), rwfn_getter((n2i,l2i));
+#
+#    return coulomb_integral_(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{SH_basis});
+#end
 
 function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:real}}, start)
     
     est, err, M, S = coulomb_integral_(MonteCarloSymmetrized(100; seeded=method.seeded, seed=method.seed),
                                             r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{:real});
     if isapprox(est, 0.0, atol=1e-9)
-        println("integral estimate: $est, error estimate: $err");
-        return (int = est, err = std, M = M, S = S);
+        println("integral estimate: 0.0, error estimate: 0.0");
+        return (int = 0.0, err = 0.0, M = M, S = S);
     end
     
     method.seeded == true && Random.seed!(method.seed);
@@ -144,8 +164,8 @@ function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i
     est, err, M, S = coulomb_integral_(MonteCarloSymmetrized(100; seeded=method.seeded, seed=method.seed),
                                             r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{:complex});
     if isapprox(est, 0.0, atol=1e-9)
-        println("integral estimate: $est, error estimate: $err");
-        return (int = est, err = std, M = M, S = S);
+        println("integral estimate: 0.0, error estimate: 0.0");
+        return (int = 0.0, err = 0.0, M = M, S = S);
     end
     
     method.seeded == true && Random.seed!(method.seed);
