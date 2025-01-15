@@ -18,7 +18,7 @@
 
 module CoulombIntegral
 
-export coulomb_integral, MonteCarlo, Expand
+export coulomb_integral, MonteCarlo, Expand, load_dataset
 
 abstract type Method end
 function coulomb_integral end
@@ -28,7 +28,7 @@ check_SH_basis(::Type{Val{:complex}}) = nothing;
 check_SH_basis(::Type{Val{:real}}) = nothing;
 
 include("FileIOModule.jl");
-#using .FileIOModule
+using .FileIOModule
 include("MonteCarloModule.jl");
 using .MonteCarloModule
 include("ExpandModule.jl");

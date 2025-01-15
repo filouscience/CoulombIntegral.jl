@@ -18,21 +18,50 @@
 
 module FileIOModule
 
-#export ...
+export load_dataset
 
 using JLD2
 
 function get_dataset_name end
 
 function save_dataset!(name, dict) # overwrites existing file
-    jldsave(name * ".jld2"; data = dict);
+    jldsave(name * ".jld2"; data = dict); # DO NOT change 'data'
 end
 
-function load_dataset(name)
+# docstring
+"""
+# load_dataset
+        load_dataset(name::String)
+
+Loads respective .jld2 file and returns the stored dataset as Dict{Tuple, NamedTuple}.
+Returns empty Dict if no data exist.
+Possible values of 'name':
+
+        "data_expand_cx"
+        "data_expand_re"
+        "data_montecarlo_cx"
+        "data_montecarlo_re"
+
+### Example
+
+```julia-repl
+julia> coulomb_integral(Expand(), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:real);
+integral estimate: 0.13333333364731748, error estimate: 1.985519154205701e-9
+
+julia> coulomb_integral(Expand(), (nl)->(x->1),(1,0,0),(1,0,0),(1,1,1),(1,1,1); SH_basis=:real);
+integral estimate: 0.033333333411822166, error estimate: 4.965394792523541e-10
+
+julia> CoulombIntegral.load_dataset("data_expand_re")
+Dict{Tuple, NamedTuple} with 2 entries:
+  ((1, 0, 0), (1, 0, 0), (1, 1, 1), (1, 1, 1)) => (int = 0.0333333, err = 4.96539e-10)
+  ((1, 0, 0), (1, 1, 1), (1, 0, 0), (1, 1, 1)) => (int = 0.133333, err = 1.98552e-9)
+```
+"""
+function load_dataset(name::String)
     fname = name * ".jld2";
-    isfile(fname) || return Dict{Tuple,NamedTuple}();
+    isfile(fname) || return Dict{Tuple, NamedTuple}();
     f = load(fname);
-    haskey(f, "data") || return Dict{Tuple,NamedTuple}();
+    haskey(f, "data") || return Dict{Tuple, NamedTuple}();
     return f["data"];
 end
 
