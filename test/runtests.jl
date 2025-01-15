@@ -12,20 +12,20 @@ using Aqua
         import CoulombIntegral.MonteCarloModule as MC
         @testset "MC utils" begin
             a1 = [ π*rand(), 2π*rand() ];
-            a2 = MC.z_inv( MC.y_inv( MC.x_inv(a1) ) );
+            a2 = a1 |> MC.x_inv |> MC.y_inv |> MC.z_inv;
             d = sqrt( MC.dist2(1, a1..., 1, a2...) );
             @test isapprox(d, 2, atol=1e-9)
         end
         @testset "MC integral" begin
             R = 1.0;
-            sh_type = Val{:complex};
+            sh_type = Val{:real};
             # odd integrand: zero
             int0 = MC.coulomb_integral_(MC.MonteCarloSymmetrized(100), x->1,(0,0), x->1,(1,0), x->1,(0,0), x->1,(1,-1), R, sh_type);
             @test  isapprox(0, int0[1], atol=1e-9)
             # even integrand (all x,y,z directions): non-zero
             int1 = MC.coulomb_integral_(MC.MonteCarloSymmetrized(100; seeded=true, seed=1), x->1,(0,0), x->1,(1,0), x->1,(0,0), x->1,(1,0), R, sh_type);
             @test !isapprox(0, int1[1], atol=1e-9)
-            # even integrand: same result of 'symmetrize=true' and 'symmetrize=false'
+            # even integrand: same result of 'symmetrize=true' and 'symmetrize=false' (real SH basis)
             int2 = MC.coulomb_integral_(MonteCarlo(100; seed=1), x->1,(0,0), x->1,(1,0), x->1,(0,0), x->1,(1,0), R, sh_type, (M=0,S=0,N=1));
             @test isapprox(int1[1], int2[1], atol=1e-9)
         end
@@ -40,7 +40,7 @@ using Aqua
                 @test isapprox(int, analytic(l), atol=err)
             end
         end
-            @testset "angular part" begin
+        @testset "angular part" begin
             # symmetry of sph3product
             l1, m1 = (1, 1);
             l2, m2 = (2,-1);

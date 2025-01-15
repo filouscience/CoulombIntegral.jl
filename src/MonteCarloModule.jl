@@ -212,8 +212,8 @@ function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun
         r1,  r2  = R .* rad.(u[1:2]);
         th1, th2 = theta.(u[3:4]);
         ph1, ph2 = phi.(u[5:6]);
-        a1 = symmetrize([th1,ph1]);
-        a2 = symmetrize([th2,ph2]);
+        a1 = symmetrize([th1,ph1], Val{:real});
+        a2 = symmetrize([th2,ph2], Val{:real});
         Y1 = computeYlm.(a1[:,1], a1[:,2]; lmax=l1max, SHType = SphericalHarmonics.RealHarmonics());
         Y2 = computeYlm.(a2[:,1], a2[:,2]; lmax=l2max, SHType = SphericalHarmonics.RealHarmonics());
 
@@ -249,19 +249,23 @@ function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun
         r1,  r2  = R .* rad.(u[1:2]);
         th1, th2 = theta.(u[3:4]);
         ph1, ph2 = phi.(u[5:6]);
-        a1 = symmetrize([th1,ph1]);
-        a2 = symmetrize([th2,ph2]);
+        a1 = symmetrize([th1,ph1], Val{:complex});
+        a2 = symmetrize([th2,ph2], Val{:complex});
         Y1 = computeYlm.(a1[:,1], a1[:,2]; lmax=l1max, SHType = SphericalHarmonics.ComplexHarmonics());
         Y2 = computeYlm.(a2[:,1], a2[:,2]; lmax=l2max, SHType = SphericalHarmonics.ComplexHarmonics());
 
         # integrand value
-        fac = r1f_fun(r1) * r2f_fun(r2) * r1i_fun(r1) * r2i_fun(r2) / sqrt( dist2(r1, th1, ph1, r2, th2, ph2) + reg2 ) / 8;
+        fac = r1f_fun(r1) * r2f_fun(r2) * r1i_fun(r1) * r2i_fun(r2) / 4;
         val = 0;
-        for jtr in 1:8
-            val += conj( Y1[jtr][lm1f] * Y2[jtr][lm2f] ) * Y1[jtr][lm1i] * Y2[jtr][lm2i];
-            # cannot broadcast. Y1[:][(l,m)] throws error.
+        # check l-parity:
+        for jtr in 1:2
+            for ktr in 1:2
+                val += conj( Y1[jtr][lm1f] * Y2[ktr][lm2f] ) * Y1[jtr][lm1i] * Y2[ktr][lm2i] /
+                        sqrt( dist2(r1, a1[jtr,1], a1[jtr,2], r2, a2[ktr,1], a2[ktr,2]) + reg2 );
+            end
         end
-        val *= fac;
+        # check m-parity:
+        (lm1f[2]+lm2f[2] == lm1i[2]+lm2i[2] ? val *= fac : val = 0);
         M, S = welford(val, itr, M, S);
     end # for
     
@@ -298,11 +302,16 @@ dist2(r1,th1,ph1,r2,th2,ph2) = ( x(r1,th1,ph1) - x(r2,th2,ph2) )^2 +
                                ( y(r1,th1,ph1) - y(r2,th2,ph2) )^2 +
                                ( z(r1,th1,ph1) - z(r2,th2,ph2) )^2;
 
-function symmetrize(v0)
+function symmetrize(v0, ::Type{Val{:real}})
     v1 = [v0, x_inv(v0)];
     v2 = [v1; y_inv.(v1)];
     v3 = [v2; z_inv.(v2)];
     return reduce(vcat,v3'); # 8×2 Matrix{Float64}
+end
+
+function symmetrize(v0, ::Type{Val{:complex}})
+    v1 = [v0, v0 |> x_inv |> y_inv |> z_inv];
+    return reduce(vcat,v1'); # 8×2 Matrix{Float64}
 end
 
 x_inv(a) = [  a[1], π-a[2]];
