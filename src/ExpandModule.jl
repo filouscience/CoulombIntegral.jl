@@ -71,7 +71,7 @@ function coulomb_integral_(method::Expand, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun
     l1f, m1f, l2f, m2f, l1i, m1i, l2i, m2i = lm1f..., lm2f..., lm1i..., lm2i...;
     # M==m1i-m1f && -M==m2i-m2f
     M = m1i-m1f;
-    M == m2f-m2i || ( println("integral estimate: 0.0, error estimate: 0.0"); return (0, 0); );
+    M == m2f-m2i || ( println("integral estimate: 0.0, error estimate: 0.0"); return (int = 0.0, err = 0.0); );
     minL = max( abs(l1f-l1i), abs(l2f-l2i), abs(M) );
     maxL = min( l1f+l1i, l2f+l2i );
     
