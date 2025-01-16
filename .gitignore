@@ -1,3 +1,4 @@
 Manifest.toml
 develop
 .ipynb_checkpoints
+*.jld2
