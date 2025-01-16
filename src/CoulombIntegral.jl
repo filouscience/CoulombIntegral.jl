@@ -18,7 +18,7 @@
 
 module CoulombIntegral
 
-export coulomb_integral, MonteCarlo, Expand, load_dataset
+export coulomb_integral, MonteCarlo, Expand, load_dataset, clear_dataset!
 
 """
 # coulomb_integral
