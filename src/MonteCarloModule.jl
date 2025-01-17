@@ -32,7 +32,7 @@ using SphericalHarmonics # implemented without Condon-Shortley phase: (-1)^m
 Constructor of the MonteCarlo Method for calculation of the Coulomb integral.
 This integration method evaluates the integrand at `N` points (uniformly) randomly distributed
 over the integration volume (2x3D sphere), and takes the average.
-The convergence of the integral estimate is know to be ``\\sim \\sqrt{N}``.
+The convergence of the integral estimate is known to be ``\\sim \\sqrt{N}``.
 If specified, the `Integer` value of keyword argument `seed` is passed to `Random.seed!` of the random number generator.
 
 ### Example

@@ -13,7 +13,7 @@ By diagonalization of the Hamiltonian matrix, we arrive at solutions expressed a
 The Coulomb coupling, represented by $1/r$ operator, has form of the following 6D integral:
 ```math
 \begin{equation}
-\iint d^3\vec{r_1} d^3\vec{r_2} \frac{\psi_{1f}^*(\vec{r_1}) \psi_{2f}^*(\vec{r_2}) \psi_{1i}(\vec{r_1}) \psi_{2i}^*(\vec{r_2})}{|\vec{r_1}-\vec{r_2}|}
+\iint d^3\vec{r_1} d^3\vec{r_2} \frac{\psi_{1f}^*(\vec{r_1}) \psi_{2f}^*(\vec{r_2}) \psi_{1i}(\vec{r_1}) \psi_{2i}(\vec{r_2})}{|\vec{r_1}-\vec{r_2}|}
 \end{equation}
 ```
 The project aims to evaluate these integrals.
