@@ -10,7 +10,7 @@ We assume a spherical geometry of potential well confining two interacting parti
 we find a (complete) orthogonal set of basis states, and evaluate the Coulomb coupling between these states.
 By diagonalization of the Hamiltonian matrix, we arrive at solutions expressed as linear combinations of the basis states.
 
-The Coulomb coupling, represented by $1/r$ operator, has form of the following 6D integral:
+The Coulomb coupling, represented by $1/r$ operator, is expressed in the form of a 6D integral:
 ```math
 \begin{equation}
 \iint d^3\vec{r_1} d^3\vec{r_2} \frac{\psi_{1f}^*(\vec{r_1}) \psi_{2f}^*(\vec{r_2}) \psi_{1i}(\vec{r_1}) \psi_{2i}(\vec{r_2})}{|\vec{r_1}-\vec{r_2}|}
@@ -24,7 +24,7 @@ $R_{nl}$ are boundary condition satisfying (but in general arbitrary) radial fun
 
 ## methods
 
-We employ methods of (i) direct Monte Carlo integration, and (ii) semi-analytical Laplace expansion of the interaction potential $1/r$.
+We implement methods of (i) direct Monte Carlo integration, and (ii) semi-analytical method using Laplace expansion of the interaction potential $1/r$.
 
 ### MonteCarlo method
 
@@ -71,13 +71,13 @@ Calculates the Coulomb interaction integral of two charged particles.
 Supported methods are `Expand` and `MonteCarlo`.
 Returns `NamedTuple` including `int`, `err` fields for the integral and error estimates, and possibly some other values.
 The results are saved as dictionaries to respective `.jld2` files.
-`coulomb_integral` returns the saved values, if present, without recalculation unless the `recalc=true` keyword argumed is passed.
+`coulomb_integral` returns the saved values, if present, without recalculation unless the `recalc=true` flag is passed as a keyword argument.
 
 <ins>list of arguments:</ins>
 
-`method<:Method` Expand or MonteCarlo
+`method<:Method` Expand or MonteCarlo (see below)
 
-`rwfn_getter::Function` function that maps tuple `(n,l)` to function `x->f_nl(x)`, e.g. `(n,l)->(x->1)`
+`rwfn_getter::Function` function that maps tuple `(n,l)` to function `x->f_nl(x)`, e.g. trivial `(n,l)->(x->1)`
 
 `nlm1f::Tuple{Integer,Integer,Integer}` final state of 1st particle (bra multi-index)
 
@@ -96,6 +96,8 @@ The results are saved as dictionaries to respective `.jld2` files.
 `recalc::Bool = false` recalculate saved results
 
 <ins>example</ins>
+
+(A trivial radial wave function $R_{nl}(r) = 1$ is used as an example.)
 
 ```julia-repl
 julia> coulomb_integral(Expand(), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
@@ -157,8 +159,8 @@ integral estimate: 0.13333333333348787, error estimate: 9.999862058185256e-13
 ### load_dataset
         load_dataset(name::String)
 
-Loads respective `.jld2` file and returns the stored dataset as Dict{Tuple, NamedTuple}.
-Returns empty Dict if no data exist.
+Loads respective `.jld2` file and returns the stored dataset as `Dict{Tuple, NamedTuple}`.
+Returns empty `Dict` if no data exist.
 Possible values of `name`:
 
         "data_expand_cx"
@@ -184,7 +186,7 @@ Dict{Tuple, NamedTuple} with 2 entries:
 ### clear_dataset!
         clear_dataset!(name::String)
 
-Saves an empty Dict{Tuple, NamedTuple} to the respective `.jld2` file, clearing anything that was saved.
+Saves an empty `Dict{Tuple, NamedTuple}` to the respective `.jld2` file, clearing anything that was saved.
 Possible values of `name`:
 
         "data_expand_cx"
