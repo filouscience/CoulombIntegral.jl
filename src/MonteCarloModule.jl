@@ -95,7 +95,7 @@ function coulomb_integral(method::MonteCarlo, rwfn_getter::Function,
     start = ((haskey(dataset, key1) && !recalc) ? (M = dataset[key1].M, S = dataset[key1].S, N = dataset[key1].N + 1)
                                                 : (M = 0, S = 0, N = 1) );
     # integral evaluation, dispatch:
-    ci = coulomb_integral_(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{SH_basis}, start);
+    ci = _coulomb_integral(method, Val{SH_basis}, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, start);
 
     # save!
     dataset[key1] = (ci..., N = method.N);
@@ -115,13 +115,13 @@ end
 #    lm1f, lm2f, lm1i, lm2i = (l1f,m1f), (l2f,m2f), (l1i,m1i), (l2i,m2i);
 #    r1f_fun, r2f_fun, r1i_fun, r2i_fun = rwfn_getter((n1f,l1f)), rwfn_getter((n2f,l2f)), rwfn_getter((n1i,l1i)), rwfn_getter((n2i,l2i));
 #
-#    return coulomb_integral_(method, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{SH_basis});
+#    return _coulomb_integral(method, Val{SH_basis}, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R);
 #end
 
-function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:real}}, start)
+function _coulomb_integral(method::MonteCarlo, ::Type{Val{:real}}, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, start)
     
-    est, err, M, S = coulomb_integral_(MonteCarloSymmetrized(100; seeded=method.seeded, seed=method.seed),
-                                            r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{:real});
+    est, err, M, S = _coulomb_integral(MonteCarloSymmetrized(100; seeded=method.seeded, seed=method.seed), Val{:real},
+                                            r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R);
     if isapprox(est, 0.0, atol=1e-9)
         println("integral estimate: 0.0, error estimate: 0.0");
         return (int = 0.0, err = 0.0, M = M, S = S);
@@ -159,10 +159,10 @@ function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i
     return (int = est, err = std, M = M, S = S);
 end
 
-function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:complex}}, start)
+function _coulomb_integral(method::MonteCarlo, ::Type{Val{:complex}}, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, start)
 
-    est, err, M, S = coulomb_integral_(MonteCarloSymmetrized(100; seeded=method.seeded, seed=method.seed),
-                                            r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, Val{:complex});
+    est, err, M, S = _coulomb_integral(MonteCarloSymmetrized(100; seeded=method.seeded, seed=method.seed), Val{:complex},
+                                            r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R);
     if isapprox(est, 0.0, atol=1e-9)
         println("integral estimate: 0.0, error estimate: 0.0");
         return (int = 0.0, err = 0.0, M = M, S = S);
@@ -200,7 +200,7 @@ function coulomb_integral_(method::MonteCarlo, r1f_fun, lm1f, r2f_fun, lm2f, r1i
     return (int = est, err = std, M = M, S = S);
 end
 
-function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:real}})
+function _coulomb_integral(method::MonteCarloSymmetrized, ::Type{Val{:real}}, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R)
     method.seeded == true && Random.seed!(method.seed);
     M = 0;
     S = 0;
@@ -237,7 +237,7 @@ function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun
     return (int = est, err = std, M = M, S = S);
 end
 
-function coulomb_integral_(method::MonteCarloSymmetrized, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, ::Type{Val{:complex}})
+function _coulomb_integral(method::MonteCarloSymmetrized, ::Type{Val{:complex}}, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R)
     method.seeded == true && Random.seed!(method.seed);
     M = 0;
     S = 0;
