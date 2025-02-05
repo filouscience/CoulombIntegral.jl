@@ -20,7 +20,7 @@ module MonteCarloModule
 
 export MonteCarlo, coulomb_integral
 
-import CoulombIntegral: Method, coulomb_integral, check_SH_basis
+import CoulombIntegral: Method, HelperMethod, coulomb_integral, check_SH_basis
 import CoulombIntegral.FileIOModule as io
 using Random
 using SphericalHarmonics # implemented without Condon-Shortley phase: (-1)^m
@@ -57,7 +57,7 @@ struct MonteCarlo <: Method
     end
 end
 
-struct MonteCarloSymmetrized
+struct MonteCarloSymmetrized <: HelperMethod
     N::Integer
     seeded::Bool
     seed::Integer

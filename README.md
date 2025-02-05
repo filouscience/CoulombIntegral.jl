@@ -77,7 +77,8 @@ The results are saved as dictionaries to respective `.jld2` files.
 
 `method<:Method` Expand or MonteCarlo (see below)
 
-`rwfn_getter::Function` function that maps tuple `(n,l)` to function `x->f_nl(x)`, e.g. trivial `(n,l)->(x->1)`
+`rwfn_getter::Function` function that maps tuple `(n,l)` to function `x->f_nl(x)`, e.g. trivial `(n,l)->(x->1)`.
+Supposed to pass in the radial part of the wave function $R_{nl}(r)$.
 
 `nlm1f::Tuple{Integer,Integer,Integer}` final state of 1st particle (bra multi-index)
 

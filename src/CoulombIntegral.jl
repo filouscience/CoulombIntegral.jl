@@ -80,7 +80,9 @@ integral estimate: 0.0, error estimate: 0.0
 """
 function coulomb_integral end
 
-abstract type Method end
+abstract type GeneralMethod end
+abstract type Method <: GeneralMethod end
+abstract type HelperMethod <: GeneralMethod end
 
 check_SH_basis(::Type{Val{SH_basis}}) where SH_basis = throw(ArgumentError("supported 'SH_basis' are :complex or :real"));
 check_SH_basis(::Type{Val{:complex}}) = nothing;
