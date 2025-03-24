@@ -129,7 +129,7 @@ function _coulomb_integral(method::Expand, ::Type{Val{:real}}, r1f_fun, lm1f, r2
                         M == m2f_-m2i_ || continue;
                         L >= abs(M) || continue;
                         fac2i = real2complex(m2i,m2i_);
-                        angular_part += fac1f * fac2f * fac1i * fac2i *
+                        angular_part += conj(fac1f) * conj(fac2f) * fac1i * fac2i *
                                         angular_int( (l1f,m1f_), (l2f,m2f_), (l1i,m1i_), (l2i,m2i_), (L,M); norm=false);
                         m2i == 0 && break;
                     end
