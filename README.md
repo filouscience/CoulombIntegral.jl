@@ -1,5 +1,5 @@
-# Project_klimofil
-Calculation of Coulomb interaction integral
+# CoulombIntegral.jl
+a Julia package for the calculation of Coulomb interaction integral
 
 ## background
 
@@ -20,7 +20,8 @@ The project aims to evaluate these integrals.
 
 Due to the spherical geometry of the problem, spherical coordinate system is used.
 The basis wave functions are expressed in the form $\psi_{nlm}(r,\theta,\phi) = R_{nl}(r)Y_{lm}(\theta,\phi)$, where $Y_{lm}$ are the (real or complex) spherical harmonic functions,
-$R_{nl}$ are boundary condition satisfying (but in general arbitrary) radial functions. Any function can be expressed in this form using the multipole expansion.
+$R_{nl}$ are boundary-condition-satisfying (but in general arbitrary) radial functions.
+Any function can be expressed (as a sum) in this form using the multipole expansion (for each concentric shell independently, if needed).
 
 ## methods
 
@@ -49,7 +50,7 @@ For example, if a result of 100000 points is stored, next call to MonteCarlo int
 
 ## installation
 
-The package is installed as follows
+The package is not registered. It is installed as follows
 ```
 pkg> add https://github.com/B0B36JUL-FinalProjects-2024/Project_klimofil
 ```
@@ -132,10 +133,10 @@ If specified, the `Integer` value of keyword argument `seed` is passed to `Rando
 <ins>example</ins>
 
 ```julia-repl
-coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true);
+julia> coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true);
 integral estimate: 0.13340951032032422 + 0.0im, error estimate: 0.0003839287917078632
 
-coulomb_integral(MonteCarlo(400000), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true);
+julia> coulomb_integral(MonteCarlo(400000), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true);
 integral estimate: 0.13338153214314047 + 0.0im, error estimate: 0.00020052562363042465
 ```
 
