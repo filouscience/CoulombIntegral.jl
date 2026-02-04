@@ -90,7 +90,7 @@ function _coulomb_integral(method::Expand, ::Type{Val{:complex}}, r1f_fun, lm1f,
     l1f, m1f, l2f, m2f, l1i, m1i, l2i, m2i = lm1f..., lm2f..., lm1i..., lm2i...;
     # M==m1i-m1f && -M==m2i-m2f
     M = m1i-m1f;
-    M == m2f-m2i || ( println("integral estimate: 0.0, error estimate: 0.0"); return (int = 0.0, err = 0.0); );
+    M == m2f-m2i || return (int = 0.0, err = 0.0);
     minL = max( abs(l1f-l1i), abs(l2f-l2i), abs(M) );
     maxL = min( l1f+l1i, l2f+l2i );
     
@@ -104,8 +104,7 @@ function _coulomb_integral(method::Expand, ::Type{Val{:complex}}, r1f_fun, lm1f,
         int += angular_part * radial_part[1];
         err += angular_part * radial_part[2];
     end # for
-    
-    println("integral estimate: $int, error estimate: $err");
+
     return (int = int, err = err);
 end
 
@@ -149,7 +148,6 @@ function _coulomb_integral(method::Expand, ::Type{Val{:real}}, r1f_fun, lm1f, r2
         err += angular_part * abs(radial_part[2]);
     end
 
-    println("integral estimate: $int, error estimate: $err");
     return (int = int, err = err);
 end
 

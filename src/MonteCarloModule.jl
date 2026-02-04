@@ -123,7 +123,6 @@ function _coulomb_integral(method::MonteCarlo, ::Type{Val{:real}}, r1f_fun, lm1f
     est, err, M, S = _coulomb_integral(MonteCarloSymmetrized(100; seeded=method.seeded, seed=method.seed), Val{:real},
                                             r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R);
     if isapprox(est, 0.0, atol=1e-9)
-        println("integral estimate: 0.0, error estimate: 0.0");
         return (int = 0.0, err = 0.0, M = M, S = S);
     end
     
@@ -155,7 +154,6 @@ function _coulomb_integral(method::MonteCarlo, ::Type{Val{:real}}, r1f_fun, lm1f
     # standard deviation:
     std = method.N > 1 ? vol * sqrt( S / (method.N - 1) ) / sqrt(method.N) : NaN;
                                   # ^^sample variance^^
-    println("integral estimate: $est, error estimate: $std");
     return (int = est, err = std, M = M, S = S);
 end
 
@@ -164,7 +162,6 @@ function _coulomb_integral(method::MonteCarlo, ::Type{Val{:complex}}, r1f_fun, l
     est, err, M, S = _coulomb_integral(MonteCarloSymmetrized(100; seeded=method.seeded, seed=method.seed), Val{:complex},
                                             r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R);
     if isapprox(est, 0.0, atol=1e-9)
-        println("integral estimate: 0.0, error estimate: 0.0");
         return (int = 0.0, err = 0.0, M = M, S = S);
     end
     
@@ -196,7 +193,6 @@ function _coulomb_integral(method::MonteCarlo, ::Type{Val{:complex}}, r1f_fun, l
     # standard deviation:
     std = method.N > 1 ? vol * sqrt( S / (method.N - 1) ) / sqrt(method.N) : NaN;
                                   # ^^sample variance^^
-    println("integral estimate: $est, error estimate: $std");
     return (int = est, err = std, M = M, S = S);
 end
 
