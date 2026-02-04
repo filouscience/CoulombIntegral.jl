@@ -68,7 +68,7 @@ function coulomb_integral(method::Expand, rwfn_getter::Function,
     key1 = (nlm1f,nlm2f,nlm1i,nlm2i);
     haskey(dataset, key1) && (recalc || return dataset[key1]; );
     key2 = (nlm1i,nlm2i,nlm1f,nlm2f); # Hamiltonian is a Hermitian matrix
-    haskey(dataset, key2) && (recalc || return conj.(dataset[key2]); ); # relevant fields other than 'int' are always real.
+    haskey(dataset, key2) && (recalc || return merge(dataset[key2], (int=conj(dataset[key2].int),)); );
 
     # parse parameters:
     n1f, l1f, m1f, n2f, l2f, m2f, n1i, l1i, m1i, n2i, l2i, m2i = nlm1f...,nlm2f...,nlm1i...,nlm2i...;
