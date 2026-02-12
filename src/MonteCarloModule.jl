@@ -38,11 +38,11 @@ If specified, the `Integer` value of keyword argument `seed` is passed to `Rando
 ### Example
 
 ```julia-repl
-coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true);
-integral estimate: 0.13340951032032422 + 0.0im, error estimate: 0.0003839287917078632
+coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
+(int = 0.1331935370560844 + 0.0im, err = 0.0003751182122419202, M = 0.007591121340768028 + 0.0im, S = 4.57064530090761, N = 100000)
 
-coulomb_integral(MonteCarlo(400000), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true);
-integral estimate: 0.13338153214314047 + 0.0im, error estimate: 0.00020052562363042465
+coulomb_integral(MonteCarlo(400000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
+(int = 0.1334484767436356 + 0.0im, err = 0.0001956804713098359, M = 0.007605651160649333 + 0.0im, S = 19.900291185578755, N = 400000)
 ```
 """
 struct MonteCarlo <: Method
@@ -71,7 +71,7 @@ end
 io.get_dataset_name(::MonteCarlo, ::Type{Val{:complex}}) = "data_montecarlo_cx";
 io.get_dataset_name(::MonteCarlo, ::Type{Val{:real}}) = "data_montecarlo_re";
 
-function coulomb_integral(method::MonteCarlo, rwfn_getter::Function,
+function coulomb_integral(method::MonteCarlo, rwfn1_getter::Function, rwfn2_getter::Function,
                         nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
                         nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
                         R::Real=1.0, SH_basis::Symbol=:complex, recalc::Bool=false)
@@ -89,7 +89,7 @@ function coulomb_integral(method::MonteCarlo, rwfn_getter::Function,
     # parse parameters:
     n1f, l1f, m1f, n2f, l2f, m2f, n1i, l1i, m1i, n2i, l2i, m2i = nlm1f...,nlm2f...,nlm1i...,nlm2i...;
     lm1f, lm2f, lm1i, lm2i = (l1f,m1f), (l2f,m2f), (l1i,m1i), (l2i,m2i);
-    r1f_fun, r2f_fun, r1i_fun, r2i_fun = rwfn_getter((n1f,l1f)), rwfn_getter((n2f,l2f)), rwfn_getter((n1i,l1i)), rwfn_getter((n2i,l2i));
+    r1f_fun, r2f_fun, r1i_fun, r2i_fun = rwfn1_getter((n1f,l1f)), rwfn2_getter((n2f,l2f)), rwfn1_getter((n1i,l1i)), rwfn2_getter((n2i,l2i));
 
     # MC initial state:
     start = ((haskey(dataset, key1) && !recalc) ? (M = dataset[key1].M, S = dataset[key1].S, N = dataset[key1].N + 1)
@@ -103,20 +103,6 @@ function coulomb_integral(method::MonteCarlo, rwfn_getter::Function,
 
     return dataset[key1];
 end
-
-#function coulomb_integral(method::MonteCarloSymmetrized, rwfn_getter::Function,
-#                        nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
-#                        nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
-#                        R::Real=1.0, SH_basis::Symbol=:complex)
-#
-#    check_SH_basis(Val{SH_basis});
-#
-#    n1f, l1f, m1f, n2f, l2f, m2f, n1i, l1i, m1i, n2i, l2i, m2i = nlm1f...,nlm2f...,nlm1i...,nlm2i...;
-#    lm1f, lm2f, lm1i, lm2i = (l1f,m1f), (l2f,m2f), (l1i,m1i), (l2i,m2i);
-#    r1f_fun, r2f_fun, r1i_fun, r2i_fun = rwfn_getter((n1f,l1f)), rwfn_getter((n2f,l2f)), rwfn_getter((n1i,l1i)), rwfn_getter((n2i,l2i));
-#
-#    return _coulomb_integral(method, Val{SH_basis}, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R);
-#end
 
 function _coulomb_integral(method::MonteCarlo, ::Type{Val{:real}}, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, start)
     

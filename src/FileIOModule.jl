@@ -45,11 +45,11 @@ Possible values of `name`:
 ### Example
 
 ```julia-repl
-julia> coulomb_integral(Expand(), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:real);
-integral estimate: 0.13333333364731748, error estimate: 1.985519154205701e-9
+julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:real)
+(int = 0.13333333364731748, err = 1.985519154205701e-9)
 
-julia> coulomb_integral(Expand(), (nl)->(x->1),(1,0,0),(1,0,0),(1,1,1),(1,1,1); SH_basis=:real);
-integral estimate: 0.033333333411822166, error estimate: 4.965394792523541e-10
+julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,0,0),(1,1,1),(1,1,1); SH_basis=:real);
+(int = 0.033333333411822166, err = 4.965394792523541e-10)
 
 julia> load_dataset("data_expand_re")
 Dict{Tuple, NamedTuple} with 2 entries:

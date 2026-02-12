@@ -22,12 +22,12 @@ export coulomb_integral, MonteCarlo, Expand, load_dataset, clear_dataset!
 
 """
 # coulomb_integral
-        coulomb_integral( method::Expand, rwfn_getter::Function,
+        coulomb_integral( method::Expand, rwfn1_getter::Function, rwfn2_getter::Function,
                           nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
                           nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
                           R::Real=1.0, SH_basis::Symbol=:complex, recalc::Bool=false )
 
-        coulomb_integral( method::MonteCarlo, rwfn_getter::Function,
+        coulomb_integral( method::MonteCarlo, rwfn1_getter::Function, rwfn2_getter::Function
                           nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
                           nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
                           R::Real=1.0, SH_basis::Symbol=:complex, recalc::Bool=false )
@@ -61,20 +61,16 @@ The results are saved as dictionaries to respective `.jld2` files.
 ### Example
 
 ```julia-repl
-julia> coulomb_integral(Expand(), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
-integral estimate: 0.13333333364731748, error estimate: 1.985519154205701e-9
+julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
 (int = 0.13333333364731748, err = 1.985519154205701e-9)
 
-julia> coulomb_integral(Expand(), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,0,0); SH_basis=:complex, recalc=true)
-integral estimate: 0.0, error estimate: 0.0
+julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,0,0); SH_basis=:complex, recalc=true)
 (int = 0.0, err = 0.0)
 
-julia> coulomb_integral(MonteCarlo(100000),(nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1);SH_basis=:complex,recalc=true)
-integral estimate: 0.13361438820070745 + 0.0im, error estimate: 0.0003949509817002271
+julia> coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
 (int = 0.13361438820070745 + 0.0im, err = 0.0003949509817002271, M = 0.007615106979830152 + 0.0im, S = 5.066728288100175, N = 100000)
 
-julia> coulomb_integral(MonteCarlo(100000),(nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,0,0);SH_basis=:complex,recalc=true)
-integral estimate: 0.0, error estimate: 0.0
+julia> coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,0,0); SH_basis=:complex, recalc=true)
 (int = 0.0, err = 0.0, M = -5.210933715790191e-20 - 4.200110888040802e-21im, S = 1.4486740753087963e-35, N = 100000)
 ```
 """

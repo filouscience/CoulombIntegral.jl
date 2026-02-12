@@ -37,11 +37,11 @@ The radial part is evaluated using HCubature.jl. The keyword arguments `kwargs..
 ### Example
 
 ```julia-repl
-julia> coulomb_integral(Expand(), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true);
-integral estimate: 0.1333333336473175, error estimate: 1.9855191542057015e-9
+julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
+(int = 0.1333333336473175, err = 1.9855191542057015e-9)
 
-julia> coulomb_integral(Expand(; atol=1e-12), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true);
-integral estimate: 0.13333333333348787, error estimate: 9.999862058185256e-13
+julia> coulomb_integral(Expand(; atol=1e-12), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
+(int = 0.13333333333348787, err = 9.999862058185256e-13)
 ```
 """
 struct Expand <: Method
@@ -55,7 +55,7 @@ end
 io.get_dataset_name(::Expand, ::Type{Val{:complex}}) = "data_expand_cx";
 io.get_dataset_name(::Expand, ::Type{Val{:real}}) = "data_expand_re";
 
-function coulomb_integral(method::Expand, rwfn_getter::Function,
+function coulomb_integral(method::Expand, rwfn1_getter::Function, rwfn2_getter::Function,
                         nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
                         nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
                         R::Real=1.0, SH_basis::Symbol=:complex, recalc::Bool=false)
@@ -73,7 +73,7 @@ function coulomb_integral(method::Expand, rwfn_getter::Function,
     # parse parameters:
     n1f, l1f, m1f, n2f, l2f, m2f, n1i, l1i, m1i, n2i, l2i, m2i = nlm1f...,nlm2f...,nlm1i...,nlm2i...;
     lm1f, lm2f, lm1i, lm2i = (l1f,m1f), (l2f,m2f), (l1i,m1i), (l2i,m2i);
-    r1f_fun, r2f_fun, r1i_fun, r2i_fun = rwfn_getter((n1f,l1f)), rwfn_getter((n2f,l2f)), rwfn_getter((n1i,l1i)), rwfn_getter((n2i,l2i));
+    r1f_fun, r2f_fun, r1i_fun, r2i_fun = rwfn1_getter((n1f,l1f)), rwfn2_getter((n2f,l2f)), rwfn1_getter((n1i,l1i)), rwfn2_getter((n2i,l2i));
 
     # integral evaluation, dispatch:
     ci = _coulomb_integral(method, Val{SH_basis}, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R);
@@ -102,7 +102,7 @@ function _coulomb_integral(method::Expand, ::Type{Val{:complex}}, r1f_fun, lm1f,
         radial_part = radial_int(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun, R; method.HCub_kwargs...);
         
         int += angular_part * radial_part[1];
-        err += angular_part * radial_part[2];
+        err += abs(angular_part) * radial_part[2];
     end # for
 
     return (int = int, err = err);
@@ -145,7 +145,7 @@ function _coulomb_integral(method::Expand, ::Type{Val{:real}}, r1f_fun, lm1f, r2
         radial_part = radial_int(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun, R; method.HCub_kwargs...);
         
         int += angular_part * radial_part[1];
-        err += angular_part * abs(radial_part[2]);
+        err += abs(angular_part) * abs(radial_part[2]);
     end
 
     return (int = int, err = err);
