@@ -58,12 +58,12 @@ pkg> add https://github.com/B0B36JUL-FinalProjects-2024/Project_klimofil
 ## usage
 
 ### coulomb_integral
-        coulomb_integral( method::Expand, rwfn_getter::Function,
+        coulomb_integral( method::Expand, rwfn1_getter::Function, rwfn2_getter::Function,
                           nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
                           nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
                           R::Real=1.0, SH_basis::Symbol=:complex, recalc::Bool=false )
 
-        coulomb_integral( method::MonteCarlo, rwfn_getter::Function,
+        coulomb_integral( method::MonteCarlo, rwfn1_getter::Function, rwfn2_getter::Function
                           nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
                           nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
                           R::Real=1.0, SH_basis::Symbol=:complex, recalc::Bool=false )
@@ -78,7 +78,9 @@ The results are saved as dictionaries to respective `.jld2` files.
 
 `method<:Method` Expand or MonteCarlo (see below)
 
-`rwfn_getter::Function` function that maps tuple `(n,l)` to function `x->f_nl(x)`, e.g. trivial `(n,l)->(x->1)`.
+`rwfn1_getter::Function` function that maps tuple `(n,l)` to radial wavefunction `x->f1_nl(x)`, e.g. `(n,l)->(x->1)`
+
+`rwfn2_getter::Function` function that maps tuple `(n,l)` to radial wavefunction `x->f2_nl(x)`, e.g. `(n,l)->(x->1)`
 Supposed to pass in the radial part of the wave function $R_{nl}(r)$.
 
 `nlm1f::Tuple{Integer,Integer,Integer}` final state of 1st particle (bra multi-index)
@@ -102,20 +104,16 @@ Supposed to pass in the radial part of the wave function $R_{nl}(r)$.
 (A trivial radial wave function $R_{nl}(r) = 1$ is used as an example.)
 
 ```julia-repl
-julia> coulomb_integral(Expand(), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
-integral estimate: 0.13333333364731748, error estimate: 1.985519154205701e-9
+julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
 (int = 0.13333333364731748, err = 1.985519154205701e-9)
 
-julia> coulomb_integral(Expand(), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,0,0); SH_basis=:complex, recalc=true)
-integral estimate: 0.0, error estimate: 0.0
+julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,0,0); SH_basis=:complex, recalc=true)
 (int = 0.0, err = 0.0)
 
-julia> coulomb_integral(MonteCarlo(100000),(nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1);SH_basis=:complex,recalc=true)
-integral estimate: 0.13361438820070745 + 0.0im, error estimate: 0.0003949509817002271
+julia> coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
 (int = 0.13361438820070745 + 0.0im, err = 0.0003949509817002271, M = 0.007615106979830152 + 0.0im, S = 5.066728288100175, N = 100000)
 
-julia> coulomb_integral(MonteCarlo(100000),(nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,0,0);SH_basis=:complex,recalc=true)
-integral estimate: 0.0, error estimate: 0.0
+julia> coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,0,0); SH_basis=:complex, recalc=true)
 (int = 0.0, err = 0.0, M = -5.210933715790191e-20 - 4.200110888040802e-21im, S = 1.4486740753087963e-35, N = 100000)
 ```
 
@@ -133,11 +131,11 @@ If specified, the `Integer` value of keyword argument `seed` is passed to `Rando
 <ins>example</ins>
 
 ```julia-repl
-julia> coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true);
-integral estimate: 0.13340951032032422 + 0.0im, error estimate: 0.0003839287917078632
+coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
+(int = 0.1331935370560844 + 0.0im, err = 0.0003751182122419202, M = 0.007591121340768028 + 0.0im, S = 4.57064530090761, N = 100000)
 
-julia> coulomb_integral(MonteCarlo(400000), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true);
-integral estimate: 0.13338153214314047 + 0.0im, error estimate: 0.00020052562363042465
+coulomb_integral(MonteCarlo(400000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
+(int = 0.1334484767436356 + 0.0im, err = 0.0001956804713098359, M = 0.007605651160649333 + 0.0im, S = 19.900291185578755, N = 400000)
 ```
 
 ### Expand
@@ -151,11 +149,11 @@ The radial part is evaluated using "h-adaptive" rule. The keyword arguments `kwa
 <ins>example</ins>
 
 ```julia-repl
-julia> coulomb_integral(Expand(), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true);
-integral estimate: 0.1333333336473175, error estimate: 1.9855191542057015e-9
+julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
+(int = 0.1333333336473175, err = 1.9855191542057015e-9)
 
-julia> coulomb_integral(Expand(; atol=1e-12), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true);
-integral estimate: 0.13333333333348787, error estimate: 9.999862058185256e-13
+julia> coulomb_integral(Expand(; atol=1e-12), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
+(int = 0.13333333333348787, err = 9.999862058185256e-13)
 ```
 
 ### load_dataset
@@ -173,11 +171,11 @@ Possible values of `name`:
 <ins>example</ins>
 
 ```julia-repl
-julia> coulomb_integral(Expand(), (nl)->(x->1),(1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:real);
-integral estimate: 0.13333333364731748, error estimate: 1.985519154205701e-9
+julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:real)
+(int = 0.13333333364731748, err = 1.985519154205701e-9)
 
-julia> coulomb_integral(Expand(), (nl)->(x->1),(1,0,0),(1,0,0),(1,1,1),(1,1,1); SH_basis=:real);
-integral estimate: 0.033333333411822166, error estimate: 4.965394792523541e-10
+julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,0,0),(1,1,1),(1,1,1); SH_basis=:real)
+(int = 0.033333333411822166, err = 4.965394792523541e-10)
 
 julia> load_dataset("data_expand_re")
 Dict{Tuple, NamedTuple} with 2 entries:
