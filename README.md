@@ -1,13 +1,18 @@
 # CoulombIntegral.jl
 a Julia package for the calculation of Coulomb interaction integral
 
+### version v0.2.0
+July 2026
+- removed jld2 file i/o functionalities; saving/loading of data is now up to the user. (Searching the dictionary could take longer than actually calculating the value.)
+- compatible with Julia v1.10, v1.11, v1.12
+
 ## background
 
 In standard quantum-mechanical problems on Coulomb interaction between two particles, the usual approach is to separate the center-of-mass and the relative motion.
-This leads e.g. to hydrogen atom-like solutions in case of attractive interaction. However, in systems with broken translational symmetry, such an approach is not applicable.
+This leads e.g. to hydrogen atom-like solutions (wave functions) in case of attractive interaction. However, in systems with broken translational symmetry, such an approach is not applicable.
 
-We assume a spherical geometry of potential well confining two interacting particles. The perturbation theory approach is the following:
-we find a (complete) orthogonal set of basis states, and evaluate the Coulomb coupling between these states.
+We assume a spherical geometry of a potential well confining two interacting particles. The configuration interaction (CI) method is the following:
+we find an orthogonal set of basis states, and evaluate the Coulomb coupling between these states.
 By diagonalization of the Hamiltonian matrix, we arrive at solutions expressed as linear combinations of the basis states.
 
 The Coulomb coupling, represented by $1/r$ operator, is expressed in the form of a 6D integral:
@@ -41,13 +46,6 @@ It is in fact a multipole expansion of the interaction potential $1/r$. The inte
 The integrals over $\theta_1,\phi_1$ and $\theta_2,\phi_2$ are evaluated using the Clebsch-Gordan coefficients (`WignerSymbols.jl` package),
 while the radial part is integrated numerically using the "h-adaptive" rule from the `HCubature.jl` package.
 
-## file I/O
-
-Results of the `coulomb_integral` calculation are stored using the `JLD2.jl` package in the form of dictionaries in respective files.
-As default, the stored values are returned without recalculation unless the `recalc=true` keyword argument (for usage, see below) is passed.
-The MonteCarlo method can continue accumulating new samples, adding them to an already existing statistic.
-For example, if a result of 100000 points is stored, next call to MonteCarlo integration with `N=150000` only needs to add 50000 new samples.
-
 ## installation
 
 The package is **not** registered. It is installed as follows
@@ -71,8 +69,7 @@ pkg> add https://github.com/filouscience/CoulombIntegral.jl
 Calculates the Coulomb interaction integral of two charged particles.
 Supported methods are `Expand` and `MonteCarlo`.
 Returns `NamedTuple` including `int`, `err` fields for the integral and error estimates, and possibly some other values.
-~~The results are saved as dictionaries to respective `.jld2` files.
-`coulomb_integral` returns the saved values, if present, without recalculation unless the `recalc=true` flag is passed as a keyword argument.~~
+~~The results are saved as dictionaries to respective .jld2 files.~~
 
 <ins>list of arguments:</ins>
 
