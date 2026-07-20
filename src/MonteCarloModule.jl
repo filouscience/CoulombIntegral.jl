@@ -21,7 +21,6 @@ module MonteCarloModule
 export MonteCarlo, coulomb_integral
 
 import CoulombIntegral: Method, HelperMethod, coulomb_integral, check_SH_basis
-import CoulombIntegral.FileIOModule as io
 using Random
 using SphericalHarmonics # implemented without Condon-Shortley phase: (-1)^m
 
@@ -38,10 +37,10 @@ If specified, the `Integer` value of keyword argument `seed` is passed to `Rando
 ### Example
 
 ```julia-repl
-coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
+coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex)
 (int = 0.1331935370560844 + 0.0im, err = 0.0003751182122419202, M = 0.007591121340768028 + 0.0im, S = 4.57064530090761, N = 100000)
 
-coulomb_integral(MonteCarlo(400000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
+coulomb_integral(MonteCarlo(400000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex)
 (int = 0.1334484767436356 + 0.0im, err = 0.0001956804713098359, M = 0.007605651160649333 + 0.0im, S = 19.900291185578755, N = 400000)
 ```
 """
@@ -68,40 +67,41 @@ struct MonteCarloSymmetrized <: HelperMethod
     end
 end
 
-io.get_dataset_name(::MonteCarlo, ::Type{Val{:complex}}) = "data_montecarlo_cx";
-io.get_dataset_name(::MonteCarlo, ::Type{Val{:real}}) = "data_montecarlo_re";
+struct Aggregator
+    M::Number
+    S::Real
+    N::Integer
+    
+    function Aggregator(M::Number, S::Real, N::Integer)
+        return new(M, S, N);
+    end
+end
 
 function coulomb_integral(method::MonteCarlo, rwfn1_getter::Function, rwfn2_getter::Function,
                         nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
                         nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
-                        R::Real=1.0, SH_basis::Symbol=:complex, recalc::Bool=false)
+                        R::Real=1.0, SH_basis::Symbol=:complex,
+                        start::Aggregator=Aggregator(0,0,0) # MC initial state
+                        )
 
     check_SH_basis(Val{SH_basis});
 
-    # see if this integral has already been evaluated:
-    dataset_name = io.get_dataset_name(method, Val{SH_basis});
-    dataset = io.load_dataset(dataset_name);
-    key1 = (nlm1f,nlm2f,nlm1i,nlm2i);
-    haskey(dataset, key1) && dataset[key1].N >= method.N && (recalc || return dataset[key1]; );
-    key2 = (nlm1i,nlm2i,nlm1f,nlm2f); # Hamiltonian is a Hermitian matrix
-    haskey(dataset, key2) && dataset[key2].N >= method.N && (recalc || return merge(dataset[key2], (int=conj(dataset[key2].int),)); );
+    # data already aggregated, just calculate the integral and error esitmate:
+    if start.N >= method.N
+        est = (4/3*pi)^2 * R^6 * start.M;
+        std = start.N > 1 ? (4/3*pi)^2 * R^6 * sqrt( start.S / (start.N - 1) ) / sqrt(start.N) : NaN;
+        return (int = est, err = std, agg = start);
+    end
 
     # parse parameters:
     n1f, l1f, m1f, n2f, l2f, m2f, n1i, l1i, m1i, n2i, l2i, m2i = nlm1f...,nlm2f...,nlm1i...,nlm2i...;
     lm1f, lm2f, lm1i, lm2i = (l1f,m1f), (l2f,m2f), (l1i,m1i), (l2i,m2i);
     r1f_fun, r2f_fun, r1i_fun, r2i_fun = rwfn1_getter((n1f,l1f)), rwfn2_getter((n2f,l2f)), rwfn1_getter((n1i,l1i)), rwfn2_getter((n2i,l2i));
-
-    # MC initial state:
-    start = ((haskey(dataset, key1) && !recalc) ? (M = dataset[key1].M, S = dataset[key1].S, N = dataset[key1].N + 1)
-                                                : (M = 0, S = 0, N = 1) );
+    
     # integral evaluation, dispatch:
     ci = _coulomb_integral(method, Val{SH_basis}, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, start);
 
-    # save!
-    dataset[key1] = (ci..., N = method.N);
-    io.save_dataset!(dataset_name, dataset);
-
-    return dataset[key1];
+    return (int = ci.int, err = ci.err, agg = Aggregator(ci.M, ci.S, method.N) );
 end
 
 function _coulomb_integral(method::MonteCarlo, ::Type{Val{:real}}, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, start)
@@ -118,7 +118,7 @@ function _coulomb_integral(method::MonteCarlo, ::Type{Val{:real}}, r1f_fun, lm1f
     reg2 = (R * 1e-4)^2; # distance regularization
     l1max = max( lm1i[1], lm1f[1] );
     l2max = max( lm2i[1], lm2f[1] );
-    for itr in start.N:method.N
+    for itr in (start.N+1):method.N
         u = rand(Float64,6);
         r1,  r2  = R .* rad.(u[1:2]);
         th1, th2 = theta.(u[3:4]);
@@ -157,7 +157,7 @@ function _coulomb_integral(method::MonteCarlo, ::Type{Val{:complex}}, r1f_fun, l
     reg2 = (R * 1e-4)^2; # distance regularization
     l1max = max( lm1i[1], lm1f[1] );
     l2max = max( lm2i[1], lm2f[1] );
-    for itr in start.N:method.N
+    for itr in (start.N+1):method.N
         u = rand(Float64,6);
         r1,  r2  = R .* rad.(u[1:2]);
         th1, th2 = theta.(u[3:4]);

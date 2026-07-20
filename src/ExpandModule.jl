@@ -21,7 +21,6 @@ module ExpandModule
 export Expand, coulomb_integral
 
 import CoulombIntegral: Method, coulomb_integral, check_SH_basis
-import CoulombIntegral.FileIOModule as io
 using WignerSymbols
 using HCubature
 
@@ -37,10 +36,10 @@ The radial part is evaluated using HCubature.jl. The keyword arguments `kwargs..
 ### Example
 
 ```julia-repl
-julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
+julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex)
 (int = 0.1333333336473175, err = 1.9855191542057015e-9)
 
-julia> coulomb_integral(Expand(; atol=1e-12), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
+julia> coulomb_integral(Expand(; atol=1e-12), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex)
 (int = 0.13333333333348787, err = 9.999862058185256e-13)
 ```
 """
@@ -52,23 +51,12 @@ struct Expand <: Method
     end
 end
 
-io.get_dataset_name(::Expand, ::Type{Val{:complex}}) = "data_expand_cx";
-io.get_dataset_name(::Expand, ::Type{Val{:real}}) = "data_expand_re";
-
 function coulomb_integral(method::Expand, rwfn1_getter::Function, rwfn2_getter::Function,
                         nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
                         nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
-                        R::Real=1.0, SH_basis::Symbol=:complex, recalc::Bool=false)
+                        R::Real=1.0, SH_basis::Symbol=:complex)
 
     check_SH_basis(Val{SH_basis});
-
-    # see if this integral has already been evaluated:
-    dataset_name = io.get_dataset_name(method, Val{SH_basis});
-    dataset = io.load_dataset(dataset_name);
-    key1 = (nlm1f,nlm2f,nlm1i,nlm2i);
-    haskey(dataset, key1) && (recalc || return dataset[key1]; );
-    key2 = (nlm1i,nlm2i,nlm1f,nlm2f); # Hamiltonian is a Hermitian matrix
-    haskey(dataset, key2) && (recalc || return merge(dataset[key2], (int=conj(dataset[key2].int),)); );
 
     # parse parameters:
     n1f, l1f, m1f, n2f, l2f, m2f, n1i, l1i, m1i, n2i, l2i, m2i = nlm1f...,nlm2f...,nlm1i...,nlm2i...;
@@ -77,10 +65,6 @@ function coulomb_integral(method::Expand, rwfn1_getter::Function, rwfn2_getter::
 
     # integral evaluation, dispatch:
     ci = _coulomb_integral(method, Val{SH_basis}, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R);
-
-    # save!
-    dataset[key1] = ci;
-    io.save_dataset!(dataset_name, dataset);
 
     return ci;
 end

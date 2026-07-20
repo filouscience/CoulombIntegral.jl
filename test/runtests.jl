@@ -26,7 +26,7 @@ using Aqua
             int1 = MC._coulomb_integral(MC.MonteCarloSymmetrized(100; seeded=true, seed=1), sh_type, x->1,(0,0), x->1,(1,0), x->1,(0,0), x->1,(1,0), R);
             @test !isapprox(0, int1[1], atol=1e-9)
             # even integrand: same result of 'symmetrize=true' and 'symmetrize=false' (real SH basis)
-            int2 = MC._coulomb_integral(MonteCarlo(100; seed=1), sh_type, x->1,(0,0), x->1,(1,0), x->1,(0,0), x->1,(1,0), R, (M=0,S=0,N=1));
+            int2 = MC._coulomb_integral(MonteCarlo(100; seed=1), sh_type, x->1,(0,0), x->1,(1,0), x->1,(0,0), x->1,(1,0), R, (M=0,S=0,N=0));
             @test isapprox(int1[1], int2[1], atol=1e-9)
         end
     end

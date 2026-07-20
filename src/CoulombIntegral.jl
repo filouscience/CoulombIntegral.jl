@@ -18,7 +18,7 @@
 
 module CoulombIntegral
 
-export coulomb_integral, MonteCarlo, Expand, load_dataset, clear_dataset!
+export coulomb_integral, MonteCarlo, Expand
 
 """
 # coulomb_integral
@@ -35,8 +35,6 @@ export coulomb_integral, MonteCarlo, Expand, load_dataset, clear_dataset!
 Calculates the Coulomb interaction integral of two charged particles.
 Supported methods are `Expand` and `MonteCarlo`.
 Returns `NamedTuple` including `int`, `err` fields for the integral and error estimates, and possibly some other values.
-The results are saved as dictionaries to respective `.jld2` files.
-`coulomb_integral` returns the saved values, if present, without recalculation unless the `recalc=true` keyword argumed is passed.
 
 ### list of arguments:
 `method<:Method` Expand or MonteCarlo
@@ -63,16 +61,16 @@ The results are saved as dictionaries to respective `.jld2` files.
 ### Example
 
 ```julia-repl
-julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
+julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex)
 (int = 0.13333333364731748, err = 1.985519154205701e-9)
 
-julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,0,0); SH_basis=:complex, recalc=true)
+julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,0,0); SH_basis=:complex)
 (int = 0.0, err = 0.0)
 
-julia> coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
+julia> coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex)
 (int = 0.13361438820070745 + 0.0im, err = 0.0003949509817002271, M = 0.007615106979830152 + 0.0im, S = 5.066728288100175, N = 100000)
 
-julia> coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,0,0); SH_basis=:complex, recalc=true)
+julia> coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,0,0); SH_basis=:complex)
 (int = 0.0, err = 0.0, M = -5.210933715790191e-20 - 4.200110888040802e-21im, S = 1.4486740753087963e-35, N = 100000)
 ```
 """
@@ -86,8 +84,6 @@ check_SH_basis(::Type{Val{SH_basis}}) where SH_basis = throw(ArgumentError("supp
 check_SH_basis(::Type{Val{:complex}}) = nothing;
 check_SH_basis(::Type{Val{:real}}) = nothing;
 
-include("FileIOModule.jl");
-using .FileIOModule
 include("MonteCarloModule.jl");
 using .MonteCarloModule
 include("ExpandModule.jl");
