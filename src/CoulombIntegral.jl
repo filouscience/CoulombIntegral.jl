@@ -1,6 +1,6 @@
 #=
  =  CoulombIntegral.jl package
- =  Copyright (C) 2024-2025  Filip Klimovič
+ =  Copyright (C) 2024-2026  Filip Klimovič
  =
  =  This program is free software: you can redistribute it and/or modify
  =  it under the terms of the GNU General Public License as published by
@@ -25,12 +25,12 @@ export coulomb_integral, MonteCarlo, Expand
         coulomb_integral( method::Expand, rwfn1_getter::Function, rwfn2_getter::Function,
                           nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
                           nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
-                          R::Real=1.0, SH_basis::Symbol=:complex, recalc::Bool=false )
+                          R::Real=1.0, SH_basis::Symbol=:complex )
 
         coulomb_integral( method::MonteCarlo, rwfn1_getter::Function, rwfn2_getter::Function
                           nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
                           nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
-                          R::Real=1.0, SH_basis::Symbol=:complex, recalc::Bool=false )
+                          R::Real=1.0, SH_basis::Symbol=:complex )
 
 Calculates the Coulomb interaction integral of two charged particles.
 Supported methods are `Expand` and `MonteCarlo`.
@@ -68,10 +68,10 @@ julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,
 (int = 0.0, err = 0.0)
 
 julia> coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex)
-(int = 0.13361438820070745 + 0.0im, err = 0.0003949509817002271, M = 0.007615106979830152 + 0.0im, S = 5.066728288100175, N = 100000)
+(int = 0.13319529999573793 + 0.0im, err = 0.0003749857938914011, agg = CoulombIntegral.MonteCarloModule.Aggregator(0.007591221816279995 + 0.0im, 4.5674189553657945, 100000))
 
 julia> coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,0,0); SH_basis=:complex)
-(int = 0.0, err = 0.0, M = -5.210933715790191e-20 - 4.200110888040802e-21im, S = 1.4486740753087963e-35, N = 100000)
+(int = 0.0, err = 0.0, agg = CoulombIntegral.MonteCarloModule.Aggregator(0.0, 0.0, 100000))
 ```
 """
 function coulomb_integral end

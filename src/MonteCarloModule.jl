@@ -1,6 +1,6 @@
 #=
  =  CoulombIntegral.jl package
- =  Copyright (C) 2024-2025  Filip Klimovič
+ =  Copyright (C) 2024-2026  Filip Klimovič
  =
  =  This program is free software: you can redistribute it and/or modify
  =  it under the terms of the GNU General Public License as published by
@@ -37,11 +37,11 @@ If specified, the `Integer` value of keyword argument `seed` is passed to `Rando
 ### Example
 
 ```julia-repl
-coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex)
-(int = 0.1331935370560844 + 0.0im, err = 0.0003751182122419202, M = 0.007591121340768028 + 0.0im, S = 4.57064530090761, N = 100000)
+julia> coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex)
+(int = 0.13319529999573793 + 0.0im, err = 0.0003749857938914011, agg = CoulombIntegral.MonteCarloModule.Aggregator(0.007591221816279995 + 0.0im, 4.5674189553657945, 100000))
 
-coulomb_integral(MonteCarlo(400000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex)
-(int = 0.1334484767436356 + 0.0im, err = 0.0001956804713098359, M = 0.007605651160649333 + 0.0im, S = 19.900291185578755, N = 400000)
+julia> coulomb_integral(MonteCarlo(400000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex)
+(int = 0.13344367495741757 + 0.0im, err = 0.00019584950378627594, agg = CoulombIntegral.MonteCarloModule.Aggregator(0.007605377491651279 + 0.0im, 19.934686527468546, 400000))
 ```
 """
 struct MonteCarlo <: Method

@@ -50,9 +50,9 @@ For example, if a result of 100000 points is stored, next call to MonteCarlo int
 
 ## installation
 
-The package is not registered. It is installed as follows
+The package is **not** registered. It is installed as follows
 ```
-pkg> add https://github.com/B0B36JUL-FinalProjects-2024/Project_klimofil
+pkg> add https://github.com/filouscience/CoulombIntegral.jl
 ```
 
 ## usage
@@ -61,18 +61,18 @@ pkg> add https://github.com/B0B36JUL-FinalProjects-2024/Project_klimofil
         coulomb_integral( method::Expand, rwfn1_getter::Function, rwfn2_getter::Function,
                           nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
                           nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
-                          R::Real=1.0, SH_basis::Symbol=:complex, recalc::Bool=false )
+                          R::Real=1.0, SH_basis::Symbol=:complex )
 
         coulomb_integral( method::MonteCarlo, rwfn1_getter::Function, rwfn2_getter::Function
                           nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
                           nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
-                          R::Real=1.0, SH_basis::Symbol=:complex, recalc::Bool=false )
+                          R::Real=1.0, SH_basis::Symbol=:complex )
 
 Calculates the Coulomb interaction integral of two charged particles.
 Supported methods are `Expand` and `MonteCarlo`.
 Returns `NamedTuple` including `int`, `err` fields for the integral and error estimates, and possibly some other values.
-The results are saved as dictionaries to respective `.jld2` files.
-`coulomb_integral` returns the saved values, if present, without recalculation unless the `recalc=true` flag is passed as a keyword argument.
+~~The results are saved as dictionaries to respective `.jld2` files.
+`coulomb_integral` returns the saved values, if present, without recalculation unless the `recalc=true` flag is passed as a keyword argument.~~
 
 <ins>list of arguments:</ins>
 
@@ -104,17 +104,17 @@ Supposed to pass in the radial part of the wave function $R_{nl}(r)$.
 (A trivial radial wave function $R_{nl}(r) = 1$ is used as an example.)
 
 ```julia-repl
-julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
+julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex)
 (int = 0.13333333364731748, err = 1.985519154205701e-9)
 
-julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,0,0); SH_basis=:complex, recalc=true)
+julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,0,0); SH_basis=:complex)
 (int = 0.0, err = 0.0)
 
-julia> coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
-(int = 0.13361438820070745 + 0.0im, err = 0.0003949509817002271, M = 0.007615106979830152 + 0.0im, S = 5.066728288100175, N = 100000)
+julia> coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex)
+(int = 0.13319529999573793 + 0.0im, err = 0.0003749857938914011, agg = CoulombIntegral.MonteCarloModule.Aggregator(0.007591221816279995 + 0.0im, 4.5674189553657945, 100000))
 
-julia> coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,0,0); SH_basis=:complex, recalc=true)
-(int = 0.0, err = 0.0, M = -5.210933715790191e-20 - 4.200110888040802e-21im, S = 1.4486740753087963e-35, N = 100000)
+julia> coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,0,0); SH_basis=:complex)
+(int = 0.0, err = 0.0, agg = CoulombIntegral.MonteCarloModule.Aggregator(0.0, 0.0, 100000))
 ```
 
 
@@ -131,11 +131,21 @@ If specified, the `Integer` value of keyword argument `seed` is passed to `Rando
 <ins>example</ins>
 
 ```julia-repl
-coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
-(int = 0.1331935370560844 + 0.0im, err = 0.0003751182122419202, M = 0.007591121340768028 + 0.0im, S = 4.57064530090761, N = 100000)
+julia> coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex)
+(int = 0.13319529999573793 + 0.0im, err = 0.0003749857938914011, agg = CoulombIntegral.MonteCarloModule.Aggregator(0.007591221816279995 + 0.0im, 4.5674189553657945, 100000))
 
-coulomb_integral(MonteCarlo(400000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
-(int = 0.1334484767436356 + 0.0im, err = 0.0001956804713098359, M = 0.007605651160649333 + 0.0im, S = 19.900291185578755, N = 400000)
+julia> coulomb_integral(MonteCarlo(400000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex)
+(int = 0.13344367495741757 + 0.0im, err = 0.00019584950378627594, agg = CoulombIntegral.MonteCarloModule.Aggregator(0.007605377491651279 + 0.0im, 19.934686527468546, 400000))
+```
+
+Furthermore, the MonteCarlo method allows for resuming the previous calculation by passing the Aggregator state `agg` as `start` keyword argument:
+
+```julia-repl
+julia> ci1 = coulomb_integral(MonteCarlo(100000), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex)
+(int = 0.13321156222738226 + 0.0im, err = 0.00038468757593687023, agg = CoulombIntegral.MonteCarloModule.Aggregator(0.007592148652344359 + 0.0im, 4.806816469362207, 100000))
+
+julia> ci2 = coulomb_integral(MonteCarlo(100001), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, start=ci1.agg)
+(int = 0.13321260257865516 + 0.0im, err = 0.00038468513585779654, agg = CoulombIntegral.MonteCarloModule.Aggregator(0.007592207945256945 + 0.0im, 4.806851626208601, 100001))
 ```
 
 ### Expand
@@ -149,71 +159,19 @@ The radial part is evaluated using "h-adaptive" rule. The keyword arguments `kwa
 <ins>example</ins>
 
 ```julia-repl
-julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
+julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex)
 (int = 0.1333333336473175, err = 1.9855191542057015e-9)
 
-julia> coulomb_integral(Expand(; atol=1e-12), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, recalc=true)
+julia> coulomb_integral(Expand(; atol=1e-12), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex)
 (int = 0.13333333333348787, err = 9.999862058185256e-13)
 ```
 
-### load_dataset
-        load_dataset(name::String)
-
-Loads respective `.jld2` file and returns the stored dataset as `Dict{Tuple, NamedTuple}`.
-Returns empty `Dict` if no data exist.
-Possible values of `name`:
-
-        "data_expand_cx"
-        "data_expand_re"
-        "data_montecarlo_cx"
-        "data_montecarlo_re"
-
-<ins>example</ins>
-
-```julia-repl
-julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:real)
-(int = 0.13333333364731748, err = 1.985519154205701e-9)
-
-julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,0,0),(1,1,1),(1,1,1); SH_basis=:real)
-(int = 0.033333333411822166, err = 4.965394792523541e-10)
-
-julia> load_dataset("data_expand_re")
-Dict{Tuple, NamedTuple} with 2 entries:
-  ((1, 0, 0), (1, 0, 0), (1, 1, 1), (1, 1, 1)) => (int = 0.0333333, err = 4.96539e-10)
-  ((1, 0, 0), (1, 1, 1), (1, 0, 0), (1, 1, 1)) => (int = 0.133333, err = 1.98552e-9)
-```
-
-### clear_dataset!
-        clear_dataset!(name::String)
-
-Saves an empty `Dict{Tuple, NamedTuple}` to the respective `.jld2` file, clearing anything that was saved.
-Possible values of `name`:
-
-        "data_expand_cx"
-        "data_expand_re"
-        "data_montecarlo_cx"
-        "data_montecarlo_re"
-
-<ins>example</ins>
-
-```julia-repl
-julia> load_dataset("data_expand_re")
-Dict{Tuple, NamedTuple} with 2 entries:
-  ((1, 0, 0), (1, 0, 0), (1, 1, 1), (1, 1, 1)) => (int = 0.0333333, err = 4.96539e-10)
-  ((1, 0, 0), (1, 1, 1), (1, 0, 0), (1, 1, 1)) => (int = 0.133333, err = 1.98552e-9)
-
-julia> clear_dataset!("data_expand_re")
-dataset data_expand_re empty!
-
-julia> load_dataset("data_expand_re")
-Dict{Tuple, NamedTuple}()
-```
 
 ## licence
 
   CoulombIntegral.jl package
   
-  Copyright (C) 2024-2025  Filip Klimovič
+  Copyright (C) 2024-2026  Filip Klimovič
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
