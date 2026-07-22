@@ -129,7 +129,7 @@ function _coulomb_integral(method::Expand, ::Type{Val{:real}}, r1f_fun, lm1f, r2
         radial_part = radial_int(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun, R; method.HCub_kwargs...);
         
         int += angular_part * radial_part[1];
-        err += abs(angular_part) * abs(radial_part[2]);
+        err += abs(angular_part) * radial_part[2];
     end
 
     return (int = int, err = err);
