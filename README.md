@@ -64,11 +64,11 @@ pkg> add https://github.com/filouscience/CoulombIntegral.jl
         coulomb_integral( method::MonteCarlo, rwfn1_getter::Function, rwfn2_getter::Function
                           nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
                           nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
-                          R::Real=1.0, SH_basis::Symbol=:complex )
+                          R::Real=1.0, SH_basis::Symbol=:complex, start::Aggregator=Aggregator(0,0,0) )
 
 Calculates the Coulomb interaction integral of two charged particles.
 Supported methods are `Expand` and `MonteCarlo`.
-Returns `NamedTuple` including `int`, `err` fields for the integral and error estimates, and possibly some other values.
+Returns `NamedTuple` including `int`, `err` fields for the integral and error estimates, and `agg` Aggregator state (MC only).
 ~~The results are saved as dictionaries to respective .jld2 files.~~
 
 <ins>list of arguments:</ins>
@@ -94,7 +94,7 @@ Supposed to pass in the radial part of the wave function $R_{nl}(r)$.
 
 `SH_basis::Symbol = :complex` type of spherical harmonics basis: `:complex` or `:real`
 
-`recalc::Bool = false` recalculate saved results
+`start::Aggregator = Aggregator(0,0,0)` state of Aggregator (MonteCarlo method only)
 
 <ins>example</ins>
 

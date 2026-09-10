@@ -34,7 +34,7 @@ export coulomb_integral, MonteCarlo, Expand
 
 Calculates the Coulomb interaction integral of two charged particles.
 Supported methods are `Expand` and `MonteCarlo`.
-Returns `NamedTuple` including `int`, `err` fields for the integral and error estimates, and possibly some other values.
+Returns `NamedTuple` including `int`, `err` fields for the integral and error estimates, and `agg` Aggregator state (MC only).
 
 ### list of arguments:
 `method<:Method` Expand or MonteCarlo
@@ -56,7 +56,7 @@ Returns `NamedTuple` including `int`, `err` fields for the integral and error es
 
 `SH_basis::Symbol = :complex` type of spherical harmonics basis: `:complex` or `:real`
 
-`recalc::Bool = false` recalculate saved results
+`start::Aggregator = Aggregator(0,0,0)` state of Aggregator (MonteCarlo method only)
 
 ### Example
 
