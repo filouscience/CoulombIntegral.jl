@@ -54,7 +54,9 @@ end
 function coulomb_integral(method::Expand, rwfn1_getter::Function, rwfn2_getter::Function,
                         nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
                         nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
-                        R::Real=1.0, SH_basis::Symbol=:complex)
+                        R::Real=1.0, SH_basis::Symbol=:complex,
+                        dielectric_contrast::Real=1.0 # permittivity contrast at boundary: eps_out/eps_in
+                        )
 
     check_SH_basis(Val{SH_basis});
 
@@ -64,12 +66,12 @@ function coulomb_integral(method::Expand, rwfn1_getter::Function, rwfn2_getter::
     r1f_fun, r2f_fun, r1i_fun, r2i_fun = rwfn1_getter((n1f,l1f)), rwfn2_getter((n2f,l2f)), rwfn1_getter((n1i,l1i)), rwfn2_getter((n2i,l2i));
 
     # integral evaluation, dispatch:
-    ci = _coulomb_integral(method, Val{SH_basis}, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R);
+    ci = _coulomb_integral(method, Val{SH_basis}, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, dielectric_contrast);
 
     return ci;
 end
 
-function _coulomb_integral(method::Expand, ::Type{Val{:complex}}, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R)   
+function _coulomb_integral(method::Expand, ::Type{Val{:complex}}, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, dc)
     
     l1f, m1f, l2f, m2f, l1i, m1i, l2i, m2i = lm1f..., lm2f..., lm1i..., lm2i...;
     # M==m1i-m1f && -M==m2i-m2f
@@ -83,7 +85,7 @@ function _coulomb_integral(method::Expand, ::Type{Val{:complex}}, r1f_fun, lm1f,
         
         angular_part = angular_int(lm1f, lm2f, lm1i, lm2i, (L,M); norm=true);
         angular_part == 0 && continue;
-        radial_part = radial_int(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun, R; method.HCub_kwargs...);
+        radial_part = radial_int(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun, R, dc; method.HCub_kwargs...);
         
         int += angular_part * radial_part[1];
         err += abs(angular_part) * radial_part[2];
@@ -92,7 +94,7 @@ function _coulomb_integral(method::Expand, ::Type{Val{:complex}}, r1f_fun, lm1f,
     return (int = int, err = err);
 end
 
-function _coulomb_integral(method::Expand, ::Type{Val{:real}}, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R)
+function _coulomb_integral(method::Expand, ::Type{Val{:real}}, r1f_fun, lm1f, r2f_fun, lm2f, r1i_fun, lm1i, r2i_fun, lm2i, R, dc)
     
     l1f, m1f, l2f, m2f, l1i, m1i, l2i, m2i = lm1f..., lm2f..., lm1i..., lm2i...;
     minL = max( abs(l1f-l1i), abs(l2f-l2i) );
@@ -126,7 +128,7 @@ function _coulomb_integral(method::Expand, ::Type{Val{:real}}, r1f_fun, lm1f, r2
         angular_part == 0 && continue;
         angular_part *= sqrt( (2l1f+1)/(2l1i+1)*(2l2f+1)/(2l2i+1) );
         
-        radial_part = radial_int(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun, R; method.HCub_kwargs...);
+        radial_part = radial_int(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun, R, dc; method.HCub_kwargs...);
         
         int += angular_part * radial_part[1];
         err += abs(angular_part) * radial_part[2];
@@ -156,19 +158,21 @@ function real2complex(m, m_)
     return fac; 
 end
 
-function rad2product(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun)
+function rad2product(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun, R, dc)
     return (r)->begin
         r1, r2 = r;
-        # fix the limit of the Laplace expansion:
+        # fix the limit of the Laplace expansion: both r1,r2 --> 0
         r1 == 0 && return 0;
         r2 == 0 && return 0;
         # jacobian r1^2 * r2^2 included:
-        return (r1<r2 ? r1^(L+2)/r2^(L-1) : r2^(L+2)/r1^(L-1)) * r1f_fun(r1) * r2f_fun(r2) * r1i_fun(r1) * r2i_fun(r2);
+        return (( (r1<r2 ? r1^(L+2)/r2^(L-1) : r2^(L+2)/r1^(L-1))
+                + (dc==1.0 ? 0 : (1/dc - 1)*(L + 1)/(L/dc + L + 1)*r1^(L+2)*r2^(L+2)/R^(2L+1)) )
+                * r1f_fun(r1) * r2f_fun(r2) * r1i_fun(r1) * r2i_fun(r2) );
     end
 end
 
-function radial_int(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun, R; kwargs...)
-    int, err = hcubature( rad2product(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun), [0.0,0.0], [R,R]; kwargs... );
+function radial_int(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun, R, dc; kwargs...)
+    int, err = hcubature( rad2product(L, r1f_fun, r2f_fun, r1i_fun, r2i_fun, R, dc), [0.0,0.0], [R,R]; kwargs... );
     return (int, err);
 end
 
