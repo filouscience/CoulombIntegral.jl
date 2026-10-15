@@ -25,7 +25,7 @@ export coulomb_integral, MonteCarlo, Expand
         coulomb_integral( method::Expand, rwfn1_getter::Function, rwfn2_getter::Function,
                           nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
                           nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
-                          R::Real=1.0, SH_basis::Symbol=:complex )
+                          R::Real=1.0, SH_basis::Symbol=:complex, dielectric_contrast::Real=1.0 )
 
         coulomb_integral( method::MonteCarlo, rwfn1_getter::Function, rwfn2_getter::Function
                           nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
@@ -55,6 +55,8 @@ Returns `NamedTuple` including `int`, `err` fields for the integral and error es
 `R::Real = 1.0` radius of the integration sphere
 
 `SH_basis::Symbol = :complex` type of spherical harmonics basis: `:complex` or `:real`
+
+`dielectric_contrast::Real = 1.0` permittivity contrast at boundary: eps_out/eps_in (Expand method only)
 
 `start::Aggregator = Aggregator(0,0,0)` state of Aggregator (MonteCarlo method only)
 

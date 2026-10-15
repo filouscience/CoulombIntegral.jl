@@ -59,7 +59,7 @@ pkg> add https://github.com/filouscience/CoulombIntegral.jl
         coulomb_integral( method::Expand, rwfn1_getter::Function, rwfn2_getter::Function,
                           nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
                           nlm1i::Tuple{Integer,Integer,Integer}, nlm2i::Tuple{Integer,Integer,Integer};
-                          R::Real=1.0, SH_basis::Symbol=:complex )
+                          R::Real=1.0, SH_basis::Symbol=:complex, dielectric_contrast::Real=1.0 )
 
         coulomb_integral( method::MonteCarlo, rwfn1_getter::Function, rwfn2_getter::Function
                           nlm1f::Tuple{Integer,Integer,Integer}, nlm2f::Tuple{Integer,Integer,Integer},
@@ -70,6 +70,11 @@ Calculates the Coulomb interaction integral of two charged particles.
 Supported methods are `Expand` and `MonteCarlo`.
 Returns `NamedTuple` including `int`, `err` fields for the integral and error estimates, and `agg` Aggregator state (MC only).
 ~~The results are saved as dictionaries to respective .jld2 files.~~
+
+> [!NOTE]
+> the result $\langle 1f,2f|1/r|1i,2i \rangle$ is to be multiplied by $\frac{q_1 q_2}{4\pi\varepsilon_{in}}$
+> to obtain the interaction potential energy $\langle 1f,2f|V|1i,2i \rangle$,
+> where $q_1$ and $q_2$ are the charges of the two particles, and $\varepsilon_{in}$ is the permittivity of the sphere.
 
 <ins>list of arguments:</ins>
 
@@ -93,6 +98,8 @@ Supposed to pass in the radial part of the wave function $R_{nl}(r)$.
 `R::Real = 1.0` radius of the integration sphere
 
 `SH_basis::Symbol = :complex` type of spherical harmonics basis: `:complex` or `:real`
+
+`dielectric_contrast::Real = 1.0` permittivity contrast at boundary: $\varepsilon_{out}/\varepsilon_{in}$ (Expand method only)
 
 `start::Aggregator = Aggregator(0,0,0)` state of Aggregator (MonteCarlo method only)
 
@@ -153,6 +160,9 @@ This integration method uses Laplace expansion of the Coulomb interaction potent
 The angular part is evaluated using Clebsch-Gordan coefficients.
 The radial part is evaluated using "h-adaptive" rule. The keyword arguments `kwargs...` are passed to the HCubature call, see `hcubature`
 
+The Expand method supports `dielectric_contrast` keyword argument, given by $\varepsilon_{out}/\varepsilon_{in}$, for the `coulomb_integral` call.
+The contribution due to interaction with the dielectric surface polarization is included in the interaction energy.
+
 <ins>example</ins>
 
 ```julia-repl
@@ -161,6 +171,12 @@ julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,
 
 julia> coulomb_integral(Expand(; atol=1e-12), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex)
 (int = 0.13333333333348787, err = 9.999862058185256e-13)
+
+julia> coulomb_integral(Expand(; atol=1e-12), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, dielectric_contrast=0.9)
+(int = 0.1456790123458329, err = 9.99995456944115e-13)
+
+julia> coulomb_integral(Expand(; atol=1e-12), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, dielectric_contrast=1.2)
+(int = 0.11481481481496568, err = 9.999875924416427e-13)
 ```
 
 

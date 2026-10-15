@@ -1,7 +1,7 @@
 name = "CoulombIntegral"
 uuid = "b14d8a75-dabb-4667-8fda-26fbd28805c4"
 authors = ["filouscience <381931+filouscience@users.noreply.github.com>"]
-version = "0.2.0"
+version = "0.2.1"
 
 [deps]
 HCubature = "19dc6840-f33b-545b-b366-655c7e3ffd49"
