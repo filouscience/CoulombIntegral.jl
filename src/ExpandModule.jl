@@ -33,6 +33,9 @@ This integration method uses Laplace expansion of the Coulomb interaction potent
 The angular part is evaluated using Clebsch-Gordan coefficients.
 The radial part is evaluated using HCubature.jl. The keyword arguments `kwargs...` are passed to the HCubature call, see `hcubature`
 
+The Expand method supports `dielectric_contrast` keyword argument, given by `eps_out/eps_in`, for the `coulomb_integral` call.
+The contribution due to interaction with the dielectric surface polarization is included in the interaction energy.
+
 ### Example
 
 ```julia-repl
@@ -41,6 +44,12 @@ julia> coulomb_integral(Expand(), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,
 
 julia> coulomb_integral(Expand(; atol=1e-12), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex)
 (int = 0.13333333333348787, err = 9.999862058185256e-13)
+
+julia> coulomb_integral(Expand(; atol=1e-12), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, dielectric_contrast=0.9)
+(int = 0.1456790123458329, err = 9.99995456944115e-13)
+
+julia> coulomb_integral(Expand(; atol=1e-12), (nl)->(x->1),(nl)->(x->1), (1,0,0),(1,1,1),(1,0,0),(1,1,1); SH_basis=:complex, dielectric_contrast=1.2)
+(int = 0.11481481481496568, err = 9.999875924416427e-13)
 ```
 """
 struct Expand <: Method
